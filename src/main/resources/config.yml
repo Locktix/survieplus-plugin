@@ -68,7 +68,7 @@ metiers:
   deblocage:
     replanter: 3           # replantation auto apres l'abattage d'un arbre : niveau de bucheron
     recolte: 3             # recolte + replantation au clic droit : niveau de fermier
-    tombe: 3               # tombe a la mort : niveau de chasseur
+    tombe: 0               # tombe a la mort : niveau de chasseur (0 = libre pour tous)
   # niveaux qui debloquent les 2 bonus de chaque metier (0 = jamais)
   #   Bucheron : 1. la hache s'use moins en abattant un arbre    2. pomme ou pousse en plus
   #   Mineur   : 1. la pioche s'use moins en minant un filon     2. fer, or, cuivre tombent en lingots

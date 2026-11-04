@@ -36,13 +36,13 @@ Les métiers remplacent AuraSkills : on progresse en jouant, sans mana, sans cap
   et ses cadeaux, page « Ta progression » quand on l'ouvre depuis `/sp`. `/sp guide` en redonne un.
 
 ### Modifié
-- La **replantation auto**, la **récolte au clic droit** et la **tombe** se débloquent au niveau 3 de
-  Bûcheron, Fermier et Chasseur. Réglable dans `metiers.deblocage` (0 = libre pour tous).
+- La **replantation auto** et la **récolte au clic droit** se débloquent au niveau 3 de Bûcheron et de
+  Fermier. La **tombe** reste libre pour tous. Réglable dans `metiers.deblocage` (0 = libre pour tous).
 
 ### Corrigé
 - Le `config.yml` livré rangeait l'XP des métiers sous `guide:` au lieu de `metiers:`. Sur un serveur
-  sans métiers auparavant, le Mineur et le Chasseur n'auraient gagné aucune XP (donc pas de tombe)
-  et le Pêcheur 3 XP par prise. Corrigé avant toute mise en ligne.
+  sans métiers auparavant, le Mineur et le Chasseur n'auraient gagné aucune XP et le Pêcheur
+  3 XP par prise. Corrigé avant toute mise en ligne.
 - Les pourcentages s'affichent avec une virgule (« 12,5 % ») quelle que soit la langue du serveur.
 - Une sauvegarde automatique de `metiers.yml` ne peut plus écraser celle faite à l'arrêt du serveur.
 
@@ -56,8 +56,8 @@ Les métiers remplacent AuraSkills : on progresse en jouant, sans mana, sans cap
    empêchent son chargement.
 3. Retirer AuraSkills (ses niveaux ne sont pas repris : tout le monde repart de zéro en métiers).
 4. Redémarrer. Le `config.yml` existant est complété tout seul ; les réglages déjà présents ne changent pas.
-5. Prévenir les joueurs : replantation, récolte au clic droit et tombe sont grisées jusqu'au niveau 3
-   du métier correspondant.
+5. Prévenir les joueurs : la replantation auto et la récolte au clic droit sont grisées jusqu'au
+   niveau 3 de Bûcheron et de Fermier.
 
 ## [1.0.0]
 
