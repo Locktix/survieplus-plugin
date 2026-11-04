@@ -11,9 +11,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /** Minage de filon : accroupi + bon outil sur un minerai = tout le filon est mine. */
@@ -29,11 +31,9 @@ final class Mineur implements Listener {
      * "Famille" du bloc pour regrouper un filon : les variantes deepslate vont avec les normales
      * (IRON_ORE et DEEPSLATE_IRON_ORE -> IRON_ORE). null si le bloc n'est pas concerne.
      */
-    private String famille(Material m) {
+    static String famille(Material m, Set<String> supplementaires) {
         String nom = m.name();
-        boolean concerne = nom.endsWith("_ORE") || m == Material.ANCIENT_DEBRIS
-                || plugin.getConfig().getStringList("mineur.blocs-supplementaires").stream()
-                        .anyMatch(s -> s.trim().toUpperCase(Locale.ROOT).equals(nom));
+        boolean concerne = nom.endsWith("_ORE") || m == Material.ANCIENT_DEBRIS || supplementaires.contains(nom);
         if (!concerne) return null;
         return nom.startsWith("DEEPSLATE_") ? nom.substring("DEEPSLATE_".length()) : nom;
     }
@@ -49,7 +49,11 @@ final class Mineur implements Listener {
         Player p = e.getPlayer();
         if (Blocs.EN_COURS.contains(p.getUniqueId())) return;
         Block depart = e.getBlock();
-        String famille = famille(depart.getType());
+        // Lu une seule fois : famille() est appelee pour chaque voisin pendant la recherche du filon
+        Set<String> supplementaires = new HashSet<>();
+        for (String s : plugin.getConfig().getStringList("mineur.blocs-supplementaires"))
+            supplementaires.add(s.trim().toUpperCase(Locale.ROOT));
+        String famille = famille(depart.getType(), supplementaires);
         if (famille == null) return;
         if (p.getGameMode() == GameMode.SPECTATOR || !plugin.actif(p, Module.MINEUR)) return;
 
@@ -59,7 +63,7 @@ final class Mineur implements Listener {
         ItemStack outil = p.getInventory().getItemInMainHand();
         if (!estOutil(outil) || !depart.isPreferredTool(outil)) return;
 
-        Predicate<Material> memeFamille = m -> Objects.equals(famille, famille(m));
+        Predicate<Material> memeFamille = m -> Objects.equals(famille, famille(m, supplementaires));
         List<Block> filon = Blocs.connectes(depart, memeFamille, Math.max(1, cfg.getInt("mineur.max-blocs", 64)));
         if (filon.size() < 2) return;
 

@@ -117,6 +117,8 @@ final class Metiers implements Listener {
     private final Map<Block, Integer> enAttente = new HashMap<>();
     private final Object verrouFichier = new Object();
     private volatile boolean modifie;
+    /** Numero de la derniere sauvegarde preparee (thread principal) / ecrite (sous verrouFichier). */
+    private long versionPreparee, versionEcrite;
 
     Metiers(SurviePlus plugin) {
         this.plugin = plugin;
@@ -150,14 +152,14 @@ final class Metiers implements Listener {
         return Math.max(1, cfg().getInt("metiers.niveau-max", 50));
     }
 
-    private long xpRequis(int niveau) {
-        return Math.max(1, cfg().getLong("metiers.xp-base", 50) + (long) niveau * cfg().getLong("metiers.xp-par-niveau", 25));
+    Progression progression(long xp) {
+        return progression(xp, cfg().getLong("metiers.xp-base", 50), cfg().getLong("metiers.xp-par-niveau", 25), niveauMax());
     }
 
-    Progression progression(long xp) {
-        int max = niveauMax();
+    /** XP pour passer du niveau N au niveau N+1 = base + N x parNiveau (au moins 1). */
+    static Progression progression(long xp, long base, long parNiveau, int max) {
         for (int n = 0; n < max; n++) {
-            long r = xpRequis(n);
+            long r = Math.max(1, base + (long) n * parNiveau);
             if (xp < r) return new Progression(n, xp, r);
             xp -= r;
         }
@@ -175,8 +177,11 @@ final class Metiers implements Listener {
 
     /** Chance (0 a 1) de recolte / prise / butin double a ce niveau. */
     double chanceDouble(int niveau) {
-        double pct = Math.min(cfg().getDouble("metiers.double-max", 25), niveau * cfg().getDouble("metiers.double-par-niveau", 0.5));
-        return Math.max(0, pct) / 100.0;
+        return chanceDouble(niveau, cfg().getDouble("metiers.double-par-niveau", 0.5), cfg().getDouble("metiers.double-max", 25));
+    }
+
+    static double chanceDouble(int niveau, double parNiveau, double max) {
+        return Math.max(0, Math.min(max, niveau * parNiveau)) / 100.0;
     }
 
     private boolean tirageDouble(Player p, Metier m) {
@@ -322,7 +327,7 @@ final class Metiers implements Listener {
 
     static String pourcent(double chance) {
         double pct = chance * 100;
-        return (pct == Math.rint(pct) ? String.valueOf((long) pct) : String.format("%.1f", pct)) + " %";
+        return (pct == Math.rint(pct) ? String.valueOf((long) pct) : String.format(java.util.Locale.FRANCE, "%.1f", pct)) + " %";
     }
 
     // ------------------------------------------------------------ barre de progression
@@ -754,8 +759,13 @@ final class Metiers implements Listener {
             for (Metier m : Metier.values()) y.set(base + m.cle, d.xp[m.ordinal()]);
         });
         String contenu = y.saveToString();
+        long version = ++versionPreparee;
         Runnable ecrire = () -> {
             synchronized (verrouFichier) {
+                // Une sauvegarde asynchrone en retard ne doit pas ecraser une version plus recente
+                // (ex : celle faite a l'arret du serveur)
+                if (version <= versionEcrite) return;
+                versionEcrite = version;
                 try {
                     plugin.getDataFolder().mkdirs();
                     File tmp = new File(fichier.getPath() + ".tmp");
