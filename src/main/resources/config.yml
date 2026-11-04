@@ -99,35 +99,6 @@ metiers:
     actif: true
     rayon: 20
     bonus-pourcent: 10
-  # objets offerts en atteignant un niveau. Format : "MATERIAU [quantite] [enchantement:niveau ...]"
-  # (noms d'enchantements en anglais : efficiency, unbreaking, fortune, sharpness, looting, lure,
-  #  luck_of_the_sea, mending, silk_touch...). Sur un ENCHANTED_BOOK, ils vont dans le livre.
-  recompenses:
-    bucheron:
-      10: ["IRON_AXE efficiency:2 unbreaking:1"]
-      25: ["DIAMOND_AXE efficiency:3 unbreaking:3"]
-      50: ["ENCHANTED_BOOK mending:1"]
-    mineur:
-      10: ["IRON_PICKAXE efficiency:2 unbreaking:1"]
-      25: ["DIAMOND_PICKAXE efficiency:3 fortune:2"]
-      50: ["ENCHANTED_BOOK mending:1"]
-    fermier:
-      10: ["BONE_MEAL 32"]
-      25: ["DIAMOND_HOE efficiency:3 fortune:3"]
-      50: ["ENCHANTED_BOOK mending:1"]
-    pecheur:
-      10: ["FISHING_ROD lure:2"]
-      25: ["FISHING_ROD lure:3 luck_of_the_sea:3 unbreaking:3"]
-      50: ["ENCHANTED_BOOK mending:1"]
-    chasseur:
-      10: ["IRON_SWORD sharpness:2"]
-      25: ["DIAMOND_SWORD sharpness:3 looting:2"]
-      50: ["ENCHANTED_BOOK mending:1"]
-
-# Guide : livre qui explique le serveur (options, metiers, bonus, recompenses ; genere d'apres cette config)
-# Donne une seule fois a la premiere connexion ; toujours lisible depuis /sp, et /sp guide en redonne un.
-guide:
-  premiere-connexion: true
   # les monstres sortis d'un spawner ne rapportent rien au chasseur (anti-ferme a XP)
   ignorer-spawners: true
   xp:
@@ -163,3 +134,32 @@ guide:
       WARDEN: 100
       WITHER: 200
       ENDER_DRAGON: 300
+  # objets offerts en atteignant un niveau. Format : "MATERIAU [quantite] [enchantement:niveau ...]"
+  # (noms d'enchantements en anglais : efficiency, unbreaking, fortune, sharpness, looting, lure,
+  #  luck_of_the_sea, mending, silk_touch...). Sur un ENCHANTED_BOOK, ils vont dans le livre.
+  recompenses:
+    bucheron:
+      10: ["IRON_AXE efficiency:2 unbreaking:1"]
+      25: ["DIAMOND_AXE efficiency:3 unbreaking:3"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    mineur:
+      10: ["IRON_PICKAXE efficiency:2 unbreaking:1"]
+      25: ["DIAMOND_PICKAXE efficiency:3 fortune:2"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    fermier:
+      10: ["BONE_MEAL 32"]
+      25: ["DIAMOND_HOE efficiency:3 fortune:3"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    pecheur:
+      10: ["FISHING_ROD lure:2"]
+      25: ["FISHING_ROD lure:3 luck_of_the_sea:3 unbreaking:3"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    chasseur:
+      10: ["IRON_SWORD sharpness:2"]
+      25: ["DIAMOND_SWORD sharpness:3 looting:2"]
+      50: ["ENCHANTED_BOOK mending:1"]
+
+# Guide : livre qui explique le serveur (options, metiers, bonus, recompenses ; genere d'apres cette config)
+# Donne une seule fois a la premiere connexion ; toujours lisible depuis /sp, et /sp guide en redonne un.
+guide:
+  premiere-connexion: true

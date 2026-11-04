@@ -4,7 +4,10 @@ param([switch]$Installer, [switch]$SansTests)
 $ErrorActionPreference = 'Stop'
 $ici = $PSScriptRoot
 $serveur = Split-Path $ici -Parent
-$jar = 'SurviePlus-1.0.0.jar'
+# Version lue dans paper-plugin.yml (seul endroit a modifier, avec CHANGELOG.md)
+$version = (Select-String -Path "$ici\src\main\resources\paper-plugin.yml" -Pattern "^version:\s*'?([0-9][^'\s]*)'?").Matches[0].Groups[1].Value
+if (-not $version) { throw "version introuvable dans paper-plugin.yml" }
+$jar = "SurviePlus-$version.jar"
 Set-Location $ici
 
 # libraries du serveur + lib\ (dependances de compilation seulement, ex : annotations JetBrains)
