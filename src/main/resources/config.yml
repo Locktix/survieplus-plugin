@@ -1,0 +1,162 @@
+# ============ SurviePlus ============
+# Apres modification : /survieplus reload
+
+# Abattage d'arbre : casser une buche avec une hache abat tout l'arbre
+bucheron:
+  active: true
+  # true = il faut etre accroupi (pratique pour construire avec des buches sans tout casser)
+  accroupi-requis: true
+  # nombre max de buches cassees d'un coup
+  max-blocs: 200
+  # nombre de feuilles naturelles minimum autour pour considerer que c'est un arbre
+  # (evite de raser une maison en bois). 0 = pas de verification
+  feuilles-min: 4
+  # replante automatiquement une pousse a la base de l'arbre
+  replanter: true
+  # fait tomber aussitot les feuilles qui ne sont plus reliees a un tronc
+  # (les feuilles d'un arbre voisin et celles posees a la main ne sont pas touchees)
+  feuilles: true
+
+# Minage de filon : casser un minerai avec la bonne pioche casse tout le filon
+mineur:
+  active: true
+  accroupi-requis: true
+  max-blocs: 64
+  # blocs a ajouter en plus des minerais (il faut l'outil adapte, ex : une pelle pour le gravier)
+  blocs-supplementaires: []
+  #  - GRAVEL
+  #  - CLAY
+  #  - GLOWSTONE
+
+# Recolte au clic droit : clic droit sur une culture mure = recolte + replantation
+# (ble, carottes, patates, betteraves, verrues du Nether, cacao)
+recolte:
+  active: true
+
+# Tombe : a la mort, les objets et l'XP vont dans un coffre a l'endroit de la mort
+tombe:
+  active: true
+  # apres ce delai (en minutes) n'importe qui peut ouvrir la tombe
+  # 0 = seulement son proprietaire (et les admins), pour toujours
+  protection-minutes: 0
+
+# Tri d'inventaire : Maj + clic droit sur une case vide dans un coffre,
+# un tonneau, une boite de Shulker ou son inventaire (la barre d'action ne bouge pas)
+tri:
+  active: true
+
+# Sommeil partage : pourcentage des joueurs qui doivent dormir pour passer la nuit
+# (regle la regle de jeu vanilla playersSleepingPercentage ; modifiable dans /sp par les admins)
+sommeil:
+  active: true
+  pourcentage: 50
+
+# Metiers : on gagne de l'XP de metier en jouant (bucheron, mineur, fermier, pecheur, chasseur).
+# Tous les metiers progressent en meme temps. /metiers (ou le livre dans /sp) pour voir sa progression.
+# Pas d'XP en creatif, ni pour les blocs poses par un joueur.
+metiers:
+  active: true
+  niveau-max: 50
+  # XP pour passer du niveau N au niveau N+1 = xp-base + N x xp-par-niveau
+  # (avec 50 / 25 : 50 XP pour le niv 1, 75 pour le niv 2 ... 1275 pour le niv 50)
+  xp-base: 50
+  xp-par-niveau: 25
+  # chance de recolte / prise / butin double, en % par niveau, plafonnee a double-max
+  double-par-niveau: 0.5
+  double-max: 25
+  # modules de /sp a debloquer avec un niveau de metier (0 = libre pour tous)
+  deblocage:
+    replanter: 3           # replantation auto apres l'abattage d'un arbre : niveau de bucheron
+    recolte: 3             # recolte + replantation au clic droit : niveau de fermier
+    tombe: 3               # tombe a la mort : niveau de chasseur
+  # niveaux qui debloquent les 2 bonus de chaque metier (0 = jamais)
+  #   Bucheron : 1. la hache s'use moins en abattant un arbre    2. pomme ou pousse en plus
+  #   Mineur   : 1. la pioche s'use moins en minant un filon     2. fer, or, cuivre tombent en lingots
+  #   Fermier  : 1. recolte au clic droit en 3x3                 2. les cultures autour poussent plus vite
+  #   Pecheur  : 1. le poisson mord plus vite                    2. plus de tresors
+  #   Chasseur : 1. plus d'XP sur les monstres                   2. chance d'avoir la tete du monstre
+  bonus-niveau-1: 20
+  bonus-niveau-2: 35
+  bonus:
+    usure-reduite: 50      # % de chance que l'outil ne s'use pas (abattage d'arbre / minage de filon)
+    bucheron-fruit: 5      # % de chance par buche
+    peche-rapide: 30       # % de temps d'attente en moins
+    peche-tresor: 10       # % de chance qu'une prise ordinaire devienne un tresor
+    chasseur-xp: 50        # % d'XP vanilla en plus
+    chasseur-tete: 5       # % de chance (zombie, squelette, creeper, wither squelette, piglin)
+    croissance-chance: 10  # % de chance par culture, toutes les 10 secondes
+    croissance-rayon: 4    # en blocs autour du fermier
+  # titre du meilleur metier devant le nom dans le chat (des le niveau 10 :
+  # Apprenti, Compagnon 20, Expert 30, Maitre 40, Grand maitre 50)
+  titre-chat: true
+  # annonce a tout le serveur quand un joueur obtient un nouveau titre a partir de ce niveau (0 = jamais)
+  annonce-niveau: 40
+  # bonus d'XP quand un autre joueur est proche
+  groupe:
+    actif: true
+    rayon: 20
+    bonus-pourcent: 10
+  # objets offerts en atteignant un niveau. Format : "MATERIAU [quantite] [enchantement:niveau ...]"
+  # (noms d'enchantements en anglais : efficiency, unbreaking, fortune, sharpness, looting, lure,
+  #  luck_of_the_sea, mending, silk_touch...). Sur un ENCHANTED_BOOK, ils vont dans le livre.
+  recompenses:
+    bucheron:
+      10: ["IRON_AXE efficiency:2 unbreaking:1"]
+      25: ["DIAMOND_AXE efficiency:3 unbreaking:3"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    mineur:
+      10: ["IRON_PICKAXE efficiency:2 unbreaking:1"]
+      25: ["DIAMOND_PICKAXE efficiency:3 fortune:2"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    fermier:
+      10: ["BONE_MEAL 32"]
+      25: ["DIAMOND_HOE efficiency:3 fortune:3"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    pecheur:
+      10: ["FISHING_ROD lure:2"]
+      25: ["FISHING_ROD lure:3 luck_of_the_sea:3 unbreaking:3"]
+      50: ["ENCHANTED_BOOK mending:1"]
+    chasseur:
+      10: ["IRON_SWORD sharpness:2"]
+      25: ["DIAMOND_SWORD sharpness:3 looting:2"]
+      50: ["ENCHANTED_BOOK mending:1"]
+
+# Guide : livre qui explique le serveur (options, metiers, bonus, recompenses ; genere d'apres cette config)
+# Donne une seule fois a la premiere connexion ; toujours lisible depuis /sp, et /sp guide en redonne un.
+guide:
+  premiere-connexion: true
+  # les monstres sortis d'un spawner ne rapportent rien au chasseur (anti-ferme a XP)
+  ignorer-spawners: true
+  xp:
+    bucheron: 2            # par buche
+    mineur:                # par minerai (les variantes deepslate comptent pareil) ; 0 = rien
+      COAL_ORE: 3
+      COPPER_ORE: 2
+      IRON_ORE: 5
+      GOLD_ORE: 7
+      NETHER_GOLD_ORE: 2
+      REDSTONE_ORE: 3
+      LAPIS_ORE: 6
+      NETHER_QUARTZ_ORE: 3
+      DIAMOND_ORE: 15
+      EMERALD_ORE: 20
+      ANCIENT_DEBRIS: 25
+    fermier:
+      culture: 2           # culture mure : ble, carottes, patates, betteraves, verrues, cacao
+      melon-citrouille: 3
+      canne-a-sucre: 1
+      baies: 1             # baies sucrees, baies lumineuses
+      elevage: 5           # par couple d'animaux fait se reproduire
+    pecheur:
+      poisson: 8
+      tresor: 20           # livre enchante, etiquette, selle, coquille de nautile, objet enchante
+      dechet: 3
+    chasseur:              # par monstre tue ; "defaut" pour les monstres non listes
+      defaut: 5
+      ENDERMAN: 8
+      BLAZE: 8
+      WITCH: 10
+      ELDER_GUARDIAN: 50
+      WARDEN: 100
+      WITHER: 200
+      ENDER_DRAGON: 300

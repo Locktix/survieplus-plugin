@@ -1,0 +1,28 @@
+name: SurviePlus
+version: '1.0.0'
+main: fr.survieplus.SurviePlus
+api-version: '26.3'
+description: Ameliorations de la survie (abattage d'arbre, minage de filon...)
+authors: [alanp]
+permissions:
+  survieplus.bucheron:
+    description: Abattre un arbre entier d'un coup
+    default: true
+  survieplus.mineur:
+    description: Miner un filon entier d'un coup
+    default: true
+  survieplus.recolte:
+    description: Recolter les cultures au clic droit
+    default: true
+  survieplus.tombe:
+    description: Avoir une tombe a sa mort
+    default: true
+  survieplus.tri:
+    description: Trier les coffres et son inventaire
+    default: true
+  survieplus.metiers:
+    description: Gagner de l'XP de metier et ouvrir /metiers
+    default: true
+  survieplus.admin:
+    description: /survieplus reload, reglage du sommeil, ouvrir les tombes des autres
+    default: op
