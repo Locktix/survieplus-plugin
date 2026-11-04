@@ -1,5 +1,6 @@
 package fr.survieplus;
 
+import fr.survieplus.pack.Packs;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
@@ -24,6 +25,11 @@ public final class SurviePlus extends JavaPlugin {
     private final MondeTest mondeTest = new MondeTest(this);
     private Metiers metiers;
     private Guide guide;
+    private Packs packs;
+
+    Packs packs() {
+        return packs;
+    }
 
     Metiers metiers() {
         return metiers;
@@ -54,6 +60,9 @@ public final class SurviePlus extends JavaPlugin {
         pm.registerEvents(new Tri(this), this);
         pm.registerEvents(new Menu.Ecouteur(), this);
         Sommeil.appliquer(this);
+        packs = new Packs(this, Menu.CASES);
+        packs.demarrer();
+        pm.registerEvents(packs, this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             e.registrar().register("survieplus", "Ouvre le menu SurviePlus", List.of("sp"), new Commande());
@@ -64,6 +73,7 @@ public final class SurviePlus extends JavaPlugin {
     @Override
     public void onDisable() {
         if (metiers != null) metiers.sauvegarder(false);
+        if (packs != null) packs.arreter();
     }
 
     private static void message(CommandSender s, String texte, NamedTextColor couleur) {
@@ -178,6 +188,7 @@ public final class SurviePlus extends JavaPlugin {
                 }
                 reloadConfig();
                 Sommeil.appliquer(SurviePlus.this);
+                packs.demarrer();
                 s.sendMessage(PREFIXE.append(Component.text("Configuration rechargee.", NamedTextColor.GREEN)));
                 return;
             }

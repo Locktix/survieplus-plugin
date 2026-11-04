@@ -1,5 +1,7 @@
 package fr.survieplus;
 
+import fr.survieplus.pack.DessinsMenus;
+import fr.survieplus.pack.PackMenus;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -22,19 +24,42 @@ import java.util.List;
 /** Menu /metiers : niveau, progression, bonus et classement de chaque metier. */
 final class MenuMetiers implements InventoryHolder {
 
+    // Menu classique (sans le pack) : 3 lignes
     private static final int[] SLOTS = {11, 12, 13, 14, 15};
-    private static final int SLOT_RETOUR = 18;
-    private static final int SLOT_BARRE = 22;
-    private static final int SLOT_TOTAL = 4;
+    // Menu dessine (avec le pack) : une ligne par metier, boutons en bas
+    private static final int[] DESSIN_BAS = DessinsMenus.METIERS_CASES_BAS;
 
     private final SurviePlus plugin;
     private final Player joueur;
+    private final DessinsMenus dessins;
+    private final int slotRetour, slotTotal, slotBarre;
     private final Inventory inv;
 
     MenuMetiers(SurviePlus plugin, Player joueur) {
         this.plugin = plugin;
         this.joueur = joueur;
-        this.inv = Bukkit.createInventory(this, 27, Component.text("Métiers", NamedTextColor.DARK_GREEN));
+        this.dessins = plugin.packs().pour(joueur);
+        if (dessins != null) {
+            slotRetour = DESSIN_BAS[0];
+            slotTotal = DESSIN_BAS[1];
+            slotBarre = DESSIN_BAS[2];
+            this.inv = Bukkit.createInventory(this, 54, titreDessine());
+        } else {
+            slotRetour = 18;
+            slotTotal = 4;
+            slotBarre = 22;
+            this.inv = Bukkit.createInventory(this, 27, Component.text("Métiers", NamedTextColor.DARK_GREEN));
+        }
+    }
+
+    private Component titreDessine() {
+        Metiers metiers = plugin.metiers();
+        List<DessinsMenus.LigneMetier> lignes = new ArrayList<>();
+        for (Metier m : Metier.values()) {
+            Metiers.Progression pr = metiers.progression(joueur.getUniqueId(), m);
+            lignes.add(new DessinsMenus.LigneMetier(m.nom, pr.niveau(), pr.actuel(), pr.requis(), pr.max()));
+        }
+        return dessins.titreMetiers(metiers.niveauTotal(joueur.getUniqueId()), lignes);
     }
 
     void ouvrir() {
@@ -48,13 +73,25 @@ final class MenuMetiers implements InventoryHolder {
     }
 
     private void dessiner() {
-        ItemStack vitre = objet(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
-        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, vitre);
         Metier[] metiers = Metier.values();
-        for (int i = 0; i < metiers.length; i++) inv.setItem(SLOTS[i], icone(metiers[i]));
-        inv.setItem(SLOT_RETOUR, objet(Material.ARROW, texte("Retour au menu SurviePlus", NamedTextColor.YELLOW), List.of(), false));
-        inv.setItem(SLOT_BARRE, iconeBarre());
-        inv.setItem(SLOT_TOTAL, iconeTotal());
+        if (dessins != null) {
+            // Icone du metier a gauche, puis des objets invisibles sur toute la carte : la bulle d'aide
+            // s'affiche ou que l'on pose la souris sur la ligne
+            for (int i = 0; i < metiers.length; i++) {
+                ItemStack icone = icone(metiers[i]);
+                inv.setItem(i * 9, icone);
+                ItemStack zone = icone.clone();
+                zone.setData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_MODEL, PackMenus.VIDE);
+                for (int c = 1; c < 9; c++) inv.setItem(i * 9 + c, zone);
+            }
+        } else {
+            ItemStack vitre = objet(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
+            for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, vitre);
+            for (int i = 0; i < metiers.length; i++) inv.setItem(SLOTS[i], icone(metiers[i]));
+        }
+        inv.setItem(slotRetour, objet(Material.ARROW, texte("Retour au menu SurviePlus", NamedTextColor.YELLOW), List.of(), false));
+        inv.setItem(slotBarre, iconeBarre());
+        inv.setItem(slotTotal, iconeTotal());
     }
 
     private ItemStack iconeTotal() {
@@ -154,9 +191,9 @@ final class MenuMetiers implements InventoryHolder {
     }
 
     private void clic(int slot) {
-        if (slot == SLOT_RETOUR) {
+        if (slot == slotRetour) {
             new Menu(plugin, joueur).ouvrir();
-        } else if (slot == SLOT_BARRE) {
+        } else if (slot == slotBarre) {
             plugin.basculer(joueur, Module.BARRE_METIERS);
             joueur.playSound(joueur.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1f);
             inv.setItem(slot, iconeBarre());

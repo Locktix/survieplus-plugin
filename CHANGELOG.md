@@ -32,6 +32,12 @@ Les métiers remplacent AuraSkills : on progresse en jouant, sans mana, sans cap
   - Admin : `/metiers donner <joueur> <metier> <xp>` et `/metiers reset <joueur>`.
   - Anti-triche : rien en créatif, rien pour les blocs posés par un joueur (même poussés par un piston),
     rien pour les monstres de spawner, pas de double avec Toucher de soie ni sur l'équipement des monstres.
+- **Menus en images** (« carte des métiers ») grâce à un resource pack fourni par le serveur, en plus de celui de Muscu :
+  - `/metiers` : une feuille de carte dans un cadre en chêne noir ; chaque métier est un chemin à l'encre,
+    une croix rouge marque où l'on en est, un drapeau quand c'est fini ;
+  - `/sp` : cadres à l'encre verte (option active), rouge (coupée) ou grise (bloquée) ;
+  - l'inventaire du joueur est redessiné dans le même bois ;
+  - les joueurs qui refusent le pack gardent les menus classiques. Réglages dans `pack:` (`config.yml`).
 - **Livre guide** donné à la première connexion : sommaire cliquable, une page par métier avec ses bonus
   et ses cadeaux, page « Ta progression » quand on l'ouvre depuis `/sp`. `/sp guide` en redonne un.
 
@@ -49,6 +55,8 @@ Les métiers remplacent AuraSkills : on progresse en jouant, sans mana, sans cap
 ### Technique
 - Tests automatiques (`src/test/java`), lancés par `build.ps1` avant de créer le jar.
 - Le nom du jar suit la version de `paper-plugin.yml`.
+- `build.ps1` copie aussi les sous-dossiers de `src/main/resources`.
+- Maquettes des menus dans `maquettes/` (pages HTML).
 
 ### Mettre à jour depuis la 1.0.0
 1. Faire une sauvegarde du monde.
@@ -56,6 +64,9 @@ Les métiers remplacent AuraSkills : on progresse en jouant, sans mana, sans cap
    empêchent son chargement.
 3. Retirer AuraSkills (ses niveaux ne sont pas repris : tout le monde repart de zéro en métiers).
 4. Redémarrer. Le `config.yml` existant est complété tout seul ; les réglages déjà présents ne changent pas.
+   Pour les menus en images (le port du pack n'est pas joignable chez exaroton) : mettre
+   `pack.adresse: "https://minecraft.veldor.be"`, puis envoyer `plugins/SurviePlus/survieplus-menus.zip`
+   sur ce site, renommé comme indiqué dans la console au démarrage (`survieplus-menus-<empreinte>.zip`).
 5. Prévenir les joueurs : la replantation auto et la récolte au clic droit sont grisées jusqu'au
    niveau 3 de Bûcheron et de Fermier.
 

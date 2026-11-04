@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Force build\classes | Out-Null
 $sources = Get-ChildItem src\main\java -Recurse -Filter *.java | ForEach-Object FullName
 & javac --release 25 -encoding UTF-8 -Xlint:deprecation -cp $cp -d build\classes @sources
 if ($LASTEXITCODE -ne 0) { throw "Echec de la compilation" }
-Copy-Item src\main\resources\* build\classes\
+Copy-Item src\main\resources\* build\classes\ -Recurse -Force
 
 # Tests JUnit (src\test\java), lances avant de creer le jar. -SansTests pour les sauter.
 $junit = Get-ChildItem "$ici\lib\test" -Filter 'junit-platform-console-standalone-*.jar' -ErrorAction SilentlyContinue | Select-Object -First 1

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SurviePlus – variantes pixel art</title>
+<script src="mc/police.js"></script>
+<style>
+  body { margin: 0; padding: 32px 24px 64px; background: #17120d; color: #e6dccb; font-family: "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 26px; margin: 0 0 6px; font-weight: 600; }
+  .intro { color: #b7aa93; max-width: 980px; line-height: 1.5; margin-bottom: 28px; font-size: 14px; }
+  .grille { display: flex; flex-wrap: wrap; gap: 44px 56px; align-items: flex-start; }
+  .bloc h2 { font-size: 19px; margin: 0 0 4px; font-weight: 600; }
+  .bloc h2 small { font-size: 13px; color: #9c907b; font-weight: 400; margin-left: 6px; }
+  .bloc p { margin: 0 0 12px; color: #b7aa93; max-width: 560px; font-size: 14px; line-height: 1.45; }
+  canvas { image-rendering: pixelated; display: block; }
+</style>
+</head>
+<body>
+<h1>Menu /metiers · variantes en vrai pixel art</h1>
+<div class="intro">
+  Cette fois tout est dessiné pixel par pixel à la taille du jeu, puis agrandi ×3 (comme ton interface) : pas de dégradé, pas de flou, pas d'emoji.
+  Le texte est la vraie police de Minecraft, les icônes sont les vrais objets du jeu, et les matières viennent des textures du jeu
+  (planches de sapin, papier des cartes, livre). Rendu très proche de ce que tu verras en jeu.
+  La variante « Tableau de la guilde » que tu as gardée est mise de côté dans <code>retenu-3-tableau-de-la-guilde.html</code>.
+</div>
+<div class="grille" id="grille"></div>
+
+<script>
+const S = 3;
+const METIERS = [
+  { nom: "Bûcheron", item: "iron_axe",     c: "#d98a14", niv: 12, pct: 97, b1: false, b2: false },
+  { nom: "Mineur",   item: "iron_pickaxe", c: "#2fa8b8", niv: 37, pct: 90, b1: true,  b2: true  },
+  { nom: "Fermier",  item: "iron_hoe",     c: "#b8a018", niv: 50, pct: 100, b1: true, b2: true, max: true },
+  { nom: "Pêcheur",  item: "fishing_rod",  c: "#1f7f8a", niv: 0,  pct: 24, b1: false, b2: false },
+  { nom: "Chasseur", item: "iron_sword",   c: "#b8382a", niv: 49, pct: 99, b1: true,  b2: true  },
+];
+const FICHIERS = ["ascii", "accented", "iron_axe", "iron_pickaxe", "iron_hoe", "fishing_rod", "iron_sword", "arrow", "nether_star",
+  "experience_bottle", "filled_map", "spruce_planks", "oak_planks", "dark_oak_planks", "barrel_side", "cartography_table_top",
+  "book", "map_background", "lantern", "iron_bars"];
+const IM = {};
+
+/* ───────── outils de dessin (coordonnées en pixels du jeu) ───────── */
+function toile(titre, sous, desc, w, h) {
+  const bloc = document.createElement("div");
+  bloc.className = "bloc";
+  bloc.innerHTML = `<h2>${titre}<small>${sous}</small></h2><p>${desc}</p>`;
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  cv.style.width = w * S + "px"; cv.style.height = h * S + "px";
+  bloc.appendChild(cv);
+  document.getElementById("grille").appendChild(bloc);
+  const ctx = cv.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  return ctx;
+}
+const rect = (ctx, x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+const px = (ctx, x, y, c) => rect(ctx, x, y, 1, 1, c);
+function tuile(ctx, img, x, y, w, h, ox = 0, oy = 0) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  for (let j = y - oy; j < y + h; j += img.height) for (let i = x - ox; i < x + w; i += img.width) ctx.drawImage(img, i, j);
+  ctx.restore();
+}
+/** 9 tranches : coins et bords copiés tels quels, centre et bords répétés (jamais étirés). */
+function neuf(ctx, img, sx, sy, sw, sh, b, x, y, w, h) {
+  const part = (px0, py0, pw, ph, dx, dy, dw, dh) => {
+    ctx.save(); ctx.beginPath(); ctx.rect(dx, dy, dw, dh); ctx.clip();
+    for (let j = dy; j < dy + dh; j += ph) for (let i = dx; i < dx + dw; i += pw) ctx.drawImage(img, px0, py0, pw, ph, i, j, pw, ph);
+    ctx.restore();
+  };
+  const cw = sw - 2 * b, ch = sh - 2 * b;
+  part(sx + b, sy + b, cw, ch, x + b, y + b, w - 2 * b, h - 2 * b);
+  part(sx + b, sy, cw, b, x + b, y, w - 2 * b, b);
+  part(sx + b, sy + sh - b, cw, b, x + b, y + h - b, w - 2 * b, b);
+  part(sx, sy + b, b, ch, x, y + b, b, h - 2 * b);
+  part(sx + sw - b, sy + b, b, ch, x + w - b, y + b, b, h - 2 * b);
+  ctx.drawImage(img, sx, sy, b, b, x, y, b, b);
+  ctx.drawImage(img, sx + sw - b, sy, b, b, x + w - b, y, b, b);
+  ctx.drawImage(img, sx, sy + sh - b, b, b, x, y + h - b, b, b);
+  ctx.drawImage(img, sx + sw - b, sy + sh - b, b, b, x + w - b, y + h - b, b, b);
+}
+function neufInegal(ctx, img, sx, sy, sw, sh, bl, br, bt, bb, x, y, w, h) {
+  const part = (px0, py0, pw, ph, dx, dy, dw, dh) => {
+    if (dw <= 0 || dh <= 0) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(dx, dy, dw, dh); ctx.clip();
+    for (let j = dy; j < dy + dh; j += ph) for (let i = dx; i < dx + dw; i += pw) ctx.drawImage(img, px0, py0, pw, ph, i, j, pw, ph);
+    ctx.restore();
+  };
+  const cw = sw - bl - br, ch = sh - bt - bb;
+  part(sx + bl, sy + bt, cw, ch, x + bl, y + bt, w - bl - br, h - bt - bb);
+  part(sx + bl, sy, cw, bt, x + bl, y, w - bl - br, bt);
+  part(sx + bl, sy + sh - bb, cw, bb, x + bl, y + h - bb, w - bl - br, bb);
+  part(sx, sy + bt, bl, ch, x, y + bt, bl, h - bt - bb);
+  part(sx + sw - br, sy + bt, br, ch, x + w - br, y + bt, br, h - bt - bb);
+  ctx.drawImage(img, sx, sy, bl, bt, x, y, bl, bt);
+  ctx.drawImage(img, sx + sw - br, sy, br, bt, x + w - br, y, br, bt);
+  ctx.drawImage(img, sx, sy + sh - bb, bl, bb, x, y + h - bb, bl, bb);
+  ctx.drawImage(img, sx + sw - br, sy + sh - bb, br, bb, x + w - br, y + h - bb, br, bb);
+}
+const tampon = document.createElement("canvas");
+/** Texte dans la police du jeu ; y = haut des lettres (comme en jeu). Renvoie la largeur. */
+function texte(ctx, s, x, y, couleur, echelle = 1) {
+  let cx = x;
+  for (const ch of s) {
+    const g = POLICE[ch];
+    if (!g) { cx += 4 * echelle; continue; }
+    const [f, sx, sy, w, h, ascent, hauteur, avance] = g;
+    tampon.width = w; tampon.height = h;
+    const t = tampon.getContext("2d");
+    t.imageSmoothingEnabled = false;
+    t.clearRect(0, 0, w, h);
+    t.globalCompositeOperation = "source-over";
+    t.drawImage(IM[f.replace(".png", "")], sx, sy, w, h, 0, 0, w, h);
+    t.globalCompositeOperation = "source-in";
+    t.fillStyle = couleur; t.fillRect(0, 0, w, h);
+    ctx.drawImage(tampon, 0, 0, w, h, cx, y + (7 - ascent) * echelle, w * echelle, h * echelle);
+    cx += avance * echelle;
+  }
+  return cx - x;
+}
+function largeur(s, e = 1) { let w = 0; for (const ch of s) w += (POLICE[ch] ? POLICE[ch][7] : 4) * e; return w; }
+const texteDroite = (ctx, s, xFin, y, c, e = 1) => texte(ctx, s, xFin - largeur(s, e) + 1, y, c, e);
+const texteCentre = (ctx, s, cx, y, c, e = 1) => texte(ctx, s, cx - Math.floor((largeur(s, e) - 1) / 2), y, c, e);
+const objet = (ctx, nom, x, y) => ctx.drawImage(IM[nom], x, y);
+function motif(ctx, x, y, lignes, pal) {
+  lignes.forEach((l, j) => [...l].forEach((ch, i) => { if (pal[ch]) px(ctx, x + i, y + j, pal[ch]); }));
+}
+const ETOILE = ["...#...", "..###..", "#######", ".#####.", "..###..", ".##.##.", ".#...#."];
+function etoile(ctx, x, y, on, encre = "#5a3d1e", vide = "#c8b28a") {
+  motif(ctx, x, y, ETOILE, { "#": on ? encre : vide });
+  if (on) motif(ctx, x, y, ["", "...#...", ".#####.", "..###..", "...#..."], { "#": "#e8b020" });
+}
+function clou(ctx, x, y) {
+  px(ctx, x, y, "#8a8a8a"); px(ctx, x + 1, y, "#5a5a5a"); px(ctx, x, y + 1, "#5a5a5a"); px(ctx, x + 1, y + 1, "#2e2e2e");
+}
+const cX = c => 8 + 18 * c, cY = r => 18 + 18 * r;
+/** Case creusée (pour l'inventaire) aux couleurs données. */
+function caseCreusee(ctx, x, y, fond, sombre, clair) {
+  rect(ctx, x - 1, y - 1, 18, 18, fond);
+  rect(ctx, x - 1, y - 1, 18, 1, sombre); rect(ctx, x - 1, y - 1, 1, 18, sombre);
+  rect(ctx, x, y + 16, 17, 1, clair); rect(ctx, x + 16, y, 1, 17, clair);
+}
+/** Le bas du coffre : ton inventaire. Le jeu y écrit « Inventaire » en gris foncé : on pose une étiquette claire dessous. */
+function inventaire(ctx, ox, oy, fondFn, cases, etiquette = true) {
+  fondFn(ox, oy + 125, 176, 97);
+  if (etiquette) {
+    neuf(ctx, IM.map_background, 0, 0, 64, 64, 5, ox + 5, oy + 126, 54, 11);
+  }
+  texte(ctx, "Inventaire", ox + 8, oy + 128, "#404040");
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) cases(ox + 8 + 18 * c, oy + 140 + 18 * r);
+  for (let c = 0; c < 9; c++) cases(ox + 8 + 18 * c, oy + 198);
+}
+/** Barre en 10 cases dessinées à l'encre. */
+function barreCases(ctx, x, y, pct, couleur, encre, fondCase) {
+  const plein = pct / 10;
+  for (let k = 0; k < 10; k++) {
+    const bx = x + k * 11;
+    rect(ctx, bx, y, 10, 5, encre);
+    rect(ctx, bx + 1, y + 1, 8, 3, fondCase);
+    const part = Math.max(0, Math.min(1, plein - k));
+    if (part > 0) { rect(ctx, bx + 1, y + 1, Math.round(8 * part), 3, couleur); rect(ctx, bx + 1, y + 1, Math.round(8 * part), 1, "rgba(255,255,255,.35)"); }
+  }
+}
+
+/* ───────── 1. Tableau de la guilde, en pixel art ───────── */
+function guilde() {
+  const ctx = toile("1 · Tableau de la guilde", "ta variante, refaite en pixel art",
+    "Panneau en planches de sapin, enseigne en chêne suspendue par des chaînes, chaque métier sur un morceau de papier de carte cloué. La progression en 10 cases dessinées à l'encre.",
+    184, 238);
+  const ox = 4, oy = 12;
+  // panneau
+  rect(ctx, ox - 4, oy - 10, 184, 139, "#1f130a");
+  tuile(ctx, IM.dark_oak_planks, ox - 3, oy - 9, 182, 137);
+  tuile(ctx, IM.spruce_planks, ox, oy - 6, 176, 131, 3, 2);
+  rect(ctx, ox, oy - 6, 176, 1, "rgba(0,0,0,.35)");
+  // chaînes + enseigne
+  [ox + 44, ox + 131].forEach(x => { for (let y = oy - 9; y < oy + 1; y++) px(ctx, x, y, y % 2 ? "#7a7a7a" : "#3e3e3e"); });
+  rect(ctx, ox + 33, oy, 111, 15, "#2a180a");
+  tuile(ctx, IM.oak_planks, ox + 34, oy + 1, 109, 13);
+  rect(ctx, ox + 34, oy + 1, 109, 1, "rgba(255,255,255,.18)");
+  rect(ctx, ox + 34, oy + 13, 109, 1, "rgba(0,0,0,.25)");
+  texteCentre(ctx, "Guilde des métiers", ox + 88, oy + 4, "#3b2412");
+  METIERS.forEach((m, i) => {
+    const y = oy + cY(i) - 1;
+    neuf(ctx, IM.map_background, 0, 0, 64, 64, 5, ox + 5, y, 166, 18);
+    clou(ctx, ox + 25, y + 2); clou(ctx, ox + 166, y + 2);
+    objet(ctx, m.item, ox + 8, oy + cY(i));
+    const w = texte(ctx, m.nom, ox + 29, oy + cY(i), "#3f2a14");
+    texte(ctx, "niv. " + m.niv, ox + 29 + w + 3, oy + cY(i), "#7a5a3a");
+    texteDroite(ctx, m.max ? "MAX" : m.pct + " %", ox + 164, oy + cY(i), m.max ? "#9a2a1a" : "#7a5a3a");
+    barreCases(ctx, ox + 29, oy + cY(i) + 10, m.pct, m.c, "#6b4a2a", "#d8c49a");
+    etoile(ctx, ox + 145, oy + cY(i) + 9, m.b1); etoile(ctx, ox + 154, oy + cY(i) + 9, m.b2);
+  });
+  [[0, "arrow"], [4, "nether_star"], [8, "experience_bottle"]].forEach(([c, it]) => {
+    const x = ox + cX(c) - 1, y = oy + 107;
+    rect(ctx, x, y, 18, 18, "#2a180a");
+    tuile(ctx, IM.oak_planks, x + 1, y + 1, 16, 16);
+    objet(ctx, it, x + 1, y + 1);
+  });
+  inventaire(ctx, ox, oy,
+    (x, y, w, h) => { rect(ctx, x, y, w, h, "#1f130a"); tuile(ctx, IM.spruce_planks, x + 1, y, w - 2, h - 1); rect(ctx, x + 1, y, w - 2, h - 1, "rgba(0,0,0,.28)"); },
+    (x, y) => caseCreusee(ctx, x, y, "#3a2614", "#1c1108", "#8a6a44"));
+}
+
+/* ───────── 2. Table de cartographie ───────── */
+function carte() {
+  const ctx = toile("2 · Carte des métiers", "table de cartographie",
+    "Une grande feuille de carte dans un cadre en chêne noir. Chaque métier est un chemin à l'encre : la partie parcourue est tracée, une croix rouge marque où tu en es, un drapeau quand c'est fini. Rose des vents dans le coin.",
+    184, 230);
+  const ox = 4, oy = 4;
+  rect(ctx, ox - 4, oy - 4, 184, 133, "#140c05");
+  tuile(ctx, IM.dark_oak_planks, ox - 3, oy - 3, 182, 131);
+  neuf(ctx, IM.map_background, 0, 0, 64, 64, 6, ox + 2, oy + 2, 172, 121);
+  texte(ctx, "Carte des métiers", ox + 9, oy + 6, "#4a3018");
+  // rose des vents
+  motif(ctx, ox + 157, oy + 3, [
+    "....#....", "...#N#...", "....#....", ".#..#..#.", "####O####", ".#..#..#.", "....#....", "...#.#...", "....#....",
+  ], { "#": "#5a3d1e", "N": "#9a2a1a", "O": "#9a2a1a" });
+  METIERS.forEach((m, i) => {
+    const y = oy + cY(i);
+    objet(ctx, m.item, ox + 8, y);
+    const w = texte(ctx, m.nom, ox + 29, y, "#3f2a14");
+    texte(ctx, "niv. " + m.niv, ox + 29 + w + 3, y, "#7a5a3a");
+    texteDroite(ctx, m.max ? "fini" : m.pct + " %", ox + 166, y, m.max ? "#9a2a1a" : "#7a5a3a");
+    // chemin : pointillés, partie parcourue en trait plein
+    const x0 = ox + 30, x1 = ox + 160, yy = y + 12, fin = x0 + Math.round((x1 - x0) * m.pct / 100);
+    for (let x = x0; x <= x1; x++) {
+      const vague = Math.round(Math.sin((x + i * 7) / 9));
+      if (x <= fin) { px(ctx, x, yy + vague, "#4a3018"); px(ctx, x, yy + vague + 1, m.c); }
+      else if ((x - x0) % 4 < 2) px(ctx, x, yy + vague, "#8a6a44");
+    }
+    const vf = Math.round(Math.sin((fin + i * 7) / 9));
+    if (m.max) motif(ctx, fin - 1, yy + vf - 4, ["##.", "###", "##.", "#..", "#.."], { "#": "#9a2a1a" });
+    else motif(ctx, fin - 2, yy + vf - 2, ["#...#", ".#.#.", "..#..", ".#.#.", "#...#"], { "#": "#b0261a" });
+  });
+  [[0, "arrow"], [4, "nether_star"], [8, "experience_bottle"]].forEach(([c, it]) => {
+    const x = ox + cX(c), y = oy + 108;
+    motif(ctx, x - 1, y - 1, ["##################", ...Array(16).fill("#................#"), "##################"], { "#": "#7a5a3a" });
+    objet(ctx, it, x, y);
+  });
+  inventaire(ctx, ox, oy,
+    (x, y, w, h) => { rect(ctx, x, y, w, h, "#140c05"); tuile(ctx, IM.dark_oak_planks, x + 1, y, w - 2, h - 1); },
+    (x, y) => caseCreusee(ctx, x, y, "#2a1a0c", "#100903", "#6b4a2a"));
+}
+
+/* ───────── 3. Livre de compétences ───────── */
+function livre() {
+  const ctx = toile("3 · Livre de compétences", "le livre du jeu, ouvert",
+    "Deux pages du vrai livre de Minecraft (cuir, couture rouge). À gauche, en dehors du coffre : ta tête, ton nom, ton titre et ton niveau total en grand. À droite : les métiers, avec une jauge fine comme un trait de plume.",
+    176 + 96 + 6, 228);
+  const ox = 98, oy = 6;
+  neufInegal(ctx, IM.book, 18, 1, 152, 182, 16, 22, 7, 9, ox - 96, oy - 5, 98, 131);
+  neufInegal(ctx, IM.book, 18, 1, 152, 182, 16, 22, 7, 9, ox - 2, oy - 5, 182, 131);
+  // page gauche
+  const lx = ox - 96;
+  motif(ctx, lx + 43, oy + 12, [
+    "########", "#hhhhhh#", "hhhhhhhh", "hsseesss", "ssssssss", "ssnnnnss", "ss.mm.ss", "ssssssss",
+  ], { "#": "#2b1d10", "h": "#3b2a18", "s": "#c68e64", "e": "#ffffff", "n": "#8a5a3a", "m": "#5a3a24", ".": "#c68e64" });
+  ctx.drawImage(ctx.canvas, lx + 43, oy + 12, 8, 8, lx + 39, oy + 10, 24, 24); // tête agrandie ×3
+  rect(ctx, lx + 38, oy + 9, 26, 1, "#3b2412"); rect(ctx, lx + 38, oy + 34, 26, 1, "#3b2412");
+  rect(ctx, lx + 38, oy + 9, 1, 26, "#3b2412"); rect(ctx, lx + 63, oy + 9, 1, 26, "#3b2412");
+  texteCentre(ctx, "Locktix", lx + 51, oy + 40, "#2b1d10");
+  texteCentre(ctx, "Expert mineur", lx + 51, oy + 51, "#1f6f7a");
+  rect(ctx, lx + 22, oy + 62, 58, 1, "#c9b48a");
+  texteCentre(ctx, "Niveau total", lx + 51, oy + 68, "#7a5a3a");
+  texteCentre(ctx, "148", lx + 51, oy + 79, "#2b1d10", 2);
+  texteCentre(ctx, "2e du serveur", lx + 51, oy + 103, "#9a2a1a");
+  // page droite
+  texte(ctx, "Métiers", ox + 16, oy + 4, "#2b1d10");
+  rect(ctx, ox + 16, oy + 13, largeur("Métiers") - 1, 1, "#9a2a1a");
+  METIERS.forEach((m, i) => {
+    const y = oy + cY(i) + 1;
+    objet(ctx, m.item, ox + 8, y);
+    const w = texte(ctx, m.nom, ox + 29, y, "#2b1d10");
+    texte(ctx, "niv. " + m.niv, ox + 29 + w + 3, y, "#7a5a3a");
+    texteDroite(ctx, m.max ? "MAX" : m.pct + " %", ox + 158, y, m.max ? "#9a2a1a" : "#7a5a3a");
+    rect(ctx, ox + 29, y + 12, 112, 1, "#c9b48a");
+    const l = Math.round(112 * m.pct / 100);
+    rect(ctx, ox + 29, y + 11, l, 2, m.c);
+    rect(ctx, ox + 29, y + 13, l, 1, "#3b2412");
+    etoile(ctx, ox + 143, y + 8, m.b1, "#3b2412", "#d8c8a8"); etoile(ctx, ox + 151, y + 8, m.b2, "#3b2412", "#d8c8a8");
+  });
+  [[0, "arrow"], [4, "nether_star"], [8, "experience_bottle"]].forEach(([c, it]) => objet(ctx, it, ox + cX(c), oy + 109));
+  inventaire(ctx, ox, oy,
+    (x, y, w, h) => { rect(ctx, x, y, w, h, "#2a0f07"); rect(ctx, x + 1, y, w - 2, h - 1, "#5c2414"); rect(ctx, x + 3, y + 2, w - 6, h - 5, "#6e2c18");
+      for (let i = 0; i < 40; i++) px(ctx, x + 4 + (i * 37) % (w - 8), y + 3 + (i * 53) % (h - 7), "#5c2414"); },
+    (x, y) => caseCreusee(ctx, x, y, "#3d160b", "#1e0904", "#8a4a2e"));
+}
+
+/* ───────── 4. Tonneau et étiquettes ───────── */
+function tonneau() {
+  const ctx = toile("4 · Étiquettes de tonneau", "cave, bois cerclé de fer",
+    "Le flanc d'un tonneau (planches et cercles de fer) avec, pour chaque métier, une étiquette en papier attachée par une ficelle. La progression est peinte dans des encoches taillées dans le bois.",
+    184, 230);
+  const ox = 4, oy = 4;
+  rect(ctx, ox - 4, oy - 4, 184, 133, "#1a1006");
+  tuile(ctx, IM.barrel_side, ox - 3, oy - 3, 182, 131);
+  texte(ctx, "Métiers", ox + 8, oy + 5, "#f0e0c0");
+  texteDroite(ctx, "total 148", ox + 167, oy + 5, "#f0e0c0");
+  METIERS.forEach((m, i) => {
+    const y = oy + cY(i);
+    // étiquette + ficelle
+    neuf(ctx, IM.map_background, 0, 0, 64, 64, 5, ox + 5, y - 1, 108, 18);
+    for (let k = 0; k < 5; k++) px(ctx, ox + 3 + k, y + 3 + (k % 2), "#d8c49a");
+    objet(ctx, m.item, ox + 8, y);
+    const w = texte(ctx, m.nom, ox + 26, y + 4, "#3f2a14");
+    texte(ctx, "niv. " + m.niv, ox + 26 + w + 3, y + 4, "#7a5a3a");
+    // encoches taillées dans le bois
+    for (let k = 0; k < 10; k++) {
+      const x = ox + 116 + k * 5, yy = y + 3;
+      rect(ctx, x, yy, 4, 10, "#1a0e05");
+      rect(ctx, x, yy + 9, 4, 1, "#8a6a44");
+      const part = Math.max(0, Math.min(1, m.pct / 10 - k));
+      if (part > 0) { const h = Math.round(9 * part); rect(ctx, x + 1, yy + 9 - h, 3, h, m.c); px(ctx, x + 1, yy + 9 - h, "rgba(255,255,255,.4)"); }
+    }
+    etoile(ctx, ox + 167, y, m.b1, "#1a0e05", "#5a3d22"); etoile(ctx, ox + 167, y + 8, m.b2, "#1a0e05", "#5a3d22");
+  });
+  [[0, "arrow"], [4, "nether_star"], [8, "experience_bottle"]].forEach(([c, it]) => {
+    const x = ox + cX(c), y = oy + 108;
+    rect(ctx, x - 1, y - 1, 18, 18, "#1a0e05"); rect(ctx, x, y, 16, 16, "#3a2412");
+    objet(ctx, it, x, y);
+  });
+  inventaire(ctx, ox, oy,
+    (x, y, w, h) => { rect(ctx, x, y, w, h, "#1a1006"); tuile(ctx, IM.barrel_side, x + 1, y, w - 2, h - 1); rect(ctx, x + 1, y, w - 2, h - 1, "rgba(0,0,0,.25)"); },
+    (x, y) => caseCreusee(ctx, x, y, "#2e1d0e", "#140b04", "#7a5a3a"));
+}
+
+/* ───────── chargement ───────── */
+Promise.all(FICHIERS.map(n => new Promise((ok, ko) => {
+  const i = new Image(); i.onload = () => { IM[n] = i; ok(); }; i.onerror = () => ko(n); i.src = "mc/" + n + ".png";
+}))).then(() => { guilde(); carte(); livre(); tonneau(); })
+  .catch(n => document.body.insertAdjacentHTML("beforeend", "<p>Image manquante : " + n + "</p>"));
+</script>
+</body>
+</html>

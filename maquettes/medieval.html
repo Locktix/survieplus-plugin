@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SurviePlus – variantes médiévales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 24px 64px;
+    background: radial-gradient(ellipse at top, #3a2c1c 0%, #1a130c 60%, #0e0a06 100%);
+    color: #eadfc8; font-family: "Segoe UI", system-ui, sans-serif;
+  }
+  h1 { font-family: "MedievalSharp", "Pixelify Sans", serif; font-size: 36px; margin: 0 0 6px; }
+  .intro { color: #c9b99a; max-width: 980px; line-height: 1.5; margin-bottom: 28px; }
+  .grille { display: flex; flex-wrap: wrap; gap: 48px 56px; align-items: flex-start; }
+  .bloc { display: flex; flex-direction: column; gap: 12px; }
+  .bloc h2 { font-family: "MedievalSharp", serif; font-size: 24px; margin: 0; color: #f3d78a; }
+  .bloc h2 small { font-family: "Segoe UI", sans-serif; font-size: 13px; color: #b3a383; margin-left: 8px; }
+  .bloc p { margin: 0; color: #c9b99a; max-width: 600px; font-size: 14px; line-height: 1.45; }
+  .scene { position: relative; }
+  .abs { position: absolute; }
+  .mc { font-family: "VT323", monospace; line-height: 1; white-space: nowrap; }
+  .gothique { font-family: "MedievalSharp", serif; line-height: 1; white-space: nowrap; }
+  .ico { display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .note { margin-top: 44px; max-width: 980px; color: #c9b99a; font-size: 14px; line-height: 1.55;
+          border-left: 3px solid #b3261e; padding: 6px 0 6px 14px; }
+</style>
+</head>
+<body>
+<h1>Menu /metiers · variantes médiévales</h1>
+<div class="intro">
+  Quatre directions plus détaillées autour du style parchemin. Taille réelle ×3, données d'exemple, emojis à la place des objets du jeu.
+  En jeu, les textures (grain du bois, taches du parchemin, fer, cire) seront dessinées en pixel art dans le même esprit.
+</div>
+<div class="grille" id="grille"></div>
+<div class="note">
+  Les titres fixes (« Métiers », « Guilde des métiers »…) peuvent utiliser une police gothique, car ils font partie de l'image.
+  Les niveaux et pourcentages, qui changent, restent dans la police de Minecraft. Tu peux aussi piocher des éléments d'une variante pour une autre
+  (par ex. le sceau de cire de la 1 dans le grimoire de la 2).
+</div>
+
+<script>
+const U = 3;
+const METIERS = [
+  { nom: "Bûcheron", ico: "🪓", c: "#e39b1b", f: "#8a5a10", niv: 12, pct: 97, b1: false, b2: false, titre: "Apprenti" },
+  { nom: "Mineur",   ico: "⛏️", c: "#3fb8c9", f: "#1d6470", niv: 37, pct: 90, b1: true,  b2: true,  titre: "Expert" },
+  { nom: "Fermier",  ico: "🌾", c: "#d8c02a", f: "#7a6a10", niv: 50, pct: 100, b1: true, b2: true, max: true, titre: "Grand maître" },
+  { nom: "Pêcheur",  ico: "🎣", c: "#2a8f9a", f: "#134d54", niv: 0,  pct: 24, b1: false, b2: false, titre: "" },
+  { nom: "Chasseur", ico: "🗡️", c: "#c8402f", f: "#6e1a12", niv: 49, pct: 99, b1: true,  b2: true,  titre: "Maître" },
+];
+
+// Textures (bruit) en SVG
+const bruit = (r, g, b, a, freq = 0.9) => `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${freq}' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 ${r}  0 0 0 0 ${g}  0 0 0 0 ${b}  0 0 0 ${a} 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
+const GRAIN_PAPIER = bruit(0.35, 0.22, 0.08, 0.28);
+const TACHES = bruit(0.45, 0.28, 0.1, 0.5, 0.035);
+const GRAIN_BOIS = bruit(0.12, 0.07, 0.03, 0.45, 0.6);
+const GRAIN_PIERRE = bruit(0.1, 0.1, 0.1, 0.45, 0.5);
+
+function box(p, x, y, w, h, style = {}, cls = "") {
+  const d = document.createElement("div");
+  d.className = "abs " + cls;
+  Object.assign(d.style, { left: x * U + "px", top: y * U + "px", width: w * U + "px", height: h * U + "px" }, style);
+  p.appendChild(d);
+  return d;
+}
+function txt(p, x, y, t, color, size = 8, style = {}, cls = "mc") {
+  const d = document.createElement("div");
+  d.className = "abs " + cls;
+  d.textContent = t;
+  Object.assign(d.style, { left: x * U + "px", top: y * U + "px", color, fontSize: size * U * 1.25 + "px" }, style);
+  p.appendChild(d);
+  return d;
+}
+function ico(p, x, y, e, t = 16, style = {}) {
+  const d = box(p, x, y, t, t, style, "ico");
+  d.textContent = e;
+  d.style.fontSize = t * U * 0.78 + "px";
+  return d;
+}
+function scene(titre, sous, desc, w, h, ox = 0, oy = 0) {
+  const bloc = document.createElement("div");
+  bloc.className = "bloc";
+  bloc.innerHTML = `<h2>${titre}<small>${sous}</small></h2><p>${desc}</p>`;
+  const s = document.createElement("div");
+  s.className = "scene";
+  s.style.width = w * U + "px";
+  s.style.height = h * U + "px";
+  bloc.appendChild(s);
+  document.getElementById("grille").appendChild(bloc);
+  return box(s, ox, oy, 176, 222);
+}
+const slotX = c => 8 + 18 * c, slotY = r => 18 + 18 * r;
+
+/* ─────────── éléments communs ─────────── */
+function parchemin(p, x, y, w, h, extra = {}) {
+  return box(p, x, y, w, h, Object.assign({
+    background: `${TACHES}, ${GRAIN_PAPIER}, radial-gradient(ellipse at 50% 45%, #f6e7c4 0%, #ead3a0 60%, #cfae6f 100%)`,
+    boxShadow: "inset 0 0 0 1px rgba(120,80,30,.35), inset 0 0 22px rgba(110,60,15,.55)",
+  }, extra));
+}
+function bois(p, x, y, w, h, extra = {}, sens = 90) {
+  return box(p, x, y, w, h, Object.assign({
+    background: `${GRAIN_BOIS}, repeating-linear-gradient(${sens}deg, #6e4524 0 7px, #613b1d 7px 10px, #7a4d29 10px 17px, #5a361a 17px 19px)`,
+    boxShadow: "inset 0 0 0 3px #2e1b0c, inset 0 0 12px rgba(0,0,0,.5)",
+  }, extra));
+}
+function coinFer(p, x, y, sx, sy) {      // équerre en fer avec rivets (sx, sy = sens ±1)
+  const fer = "linear-gradient(135deg,#9a9a9a,#4b4b4b)";
+  box(p, sx > 0 ? x : x - 13, y, 14, 4, { background: fer, boxShadow: "0 1px 0 #111" });
+  box(p, x + (sx > 0 ? 0 : -3), sy > 0 ? y : y - 10, 4, 14, { background: fer, boxShadow: "0 1px 0 #111" });
+  [[sx > 0 ? x + 1 : x - 1, sy > 0 ? y + 1 : y + 1], [sx > 0 ? x + 9 : x - 9, y + 1], [x + (sx > 0 ? 1 : -1), sy > 0 ? y + 9 : y - 7]]
+    .forEach(([a, b]) => box(p, a, b, 2, 2, { background: "radial-gradient(circle at 35% 35%,#eee,#555)", borderRadius: "50%" }));
+}
+function banderole(p, cx, y, w, texte, couleur = "#b3261e", fonce = "#6e1510") {
+  // queues pliées derrière
+  box(p, cx - w / 2 - 8, y + 4, 14, 11, { background: fonce, clipPath: "polygon(0 0,100% 0,100% 100%,0 100%,30% 50%)" });
+  box(p, cx + w / 2 - 6, y + 4, 14, 11, { background: fonce, clipPath: "polygon(0 0,100% 0,70% 50%,100% 100%,0 100%)" });
+  box(p, cx - w / 2, y, w, 13, { background: `linear-gradient(180deg, ${couleur} 0%, ${fonce} 100%)`,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,.25), inset 0 -2px 0 rgba(0,0,0,.3), 0 2px 0 rgba(0,0,0,.4)" });
+  box(p, cx - w / 2 + 2, y + 2, w - 4, 1, { background: "rgba(255,215,130,.55)" });
+  box(p, cx - w / 2 + 2, y + 10, w - 4, 1, { background: "rgba(255,215,130,.55)" });
+  txt(p, cx - w / 2, y + 1, texte, "#ffe6a6", 10, { width: w * U + "px", textAlign: "center", textShadow: "0 2px 0 #3d0a07" }, "gothique");
+}
+function blason(p, x, y, m, w = 18, h = 19) {
+  box(p, x - 1, y - 1, w + 2, h + 2, { background: "linear-gradient(180deg,#e8c25a,#8a6418)", clipPath: "polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)" });
+  box(p, x, y, w, h, { background: `linear-gradient(135deg, ${m.c} 0%, ${m.f} 100%)`, clipPath: "polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)" });
+  box(p, x + 2, y + 1, w / 2 - 2, h - 8, { background: "linear-gradient(180deg,rgba(255,255,255,.35),transparent)", clipPath: "polygon(0 0,100% 0,100% 100%,0 70%)" });
+  ico(p, x + 1, y + 1, m.ico, w - 3, { filter: "drop-shadow(0 1px 0 rgba(0,0,0,.6))" });
+}
+function jauge(p, x, y, w, pct, m, style = "gravee") {
+  if (style === "gravee") {
+    box(p, x - 1, y - 1, w + 2, 7, { background: "#8a6a3a", borderRadius: "2px", boxShadow: "inset 0 1px 0 #5b4220, 0 1px 0 rgba(255,240,200,.6)" });
+    box(p, x, y, w, 5, { background: "#c9ad74", boxShadow: "inset 0 1px 1px rgba(0,0,0,.35)" });
+    box(p, x, y, w * pct / 100, 5, { background: `repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 2px, transparent 2px 5px), linear-gradient(180deg, ${m.c}, ${m.f})`,
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.35)" });
+    box(p, x - 3, y - 1, 3, 7, { background: "linear-gradient(90deg,#b08a3a,#6b4f18)", borderRadius: "2px 0 0 2px" });
+    box(p, x + w, y - 1, 3, 7, { background: "linear-gradient(90deg,#6b4f18,#b08a3a)", borderRadius: "0 2px 2px 0" });
+  } else { // encre
+    box(p, x, y + 2, w, 1, { background: "rgba(74,44,18,.45)" });
+    box(p, x, y, w * pct / 100, 5, { background: `linear-gradient(180deg, ${m.c}dd, ${m.f}dd)`, borderRadius: "1px 3px 2px 1px",
+      boxShadow: "0 0 0 1px rgba(74,44,18,.55)" });
+  }
+}
+function etoiles(p, x, y, m, on = "#e2a91c", off = "#bfa477") {
+  txt(p, x, y - 1, "★", m.b1 ? on : off, 7, { textShadow: m.b1 ? "0 1px 0 #6b4f18" : "none" });
+  txt(p, x + 9, y - 1, "★", m.b2 ? on : off, 7, { textShadow: m.b2 ? "0 1px 0 #6b4f18" : "none" });
+}
+function sceau(p, cx, cy, r, texte, sous = "") {
+  box(p, cx - r, cy - r, 2 * r, 2 * r, { background: "radial-gradient(circle at 38% 35%, #e0473a 0%, #a3241a 55%, #6b120c 100%)",
+    borderRadius: "48% 52% 50% 47% / 50% 46% 54% 50%", boxShadow: "0 2px 0 rgba(0,0,0,.45), inset 0 0 0 2px rgba(0,0,0,.15)" });
+  box(p, cx - r + 3, cy - r + 3, 2 * r - 6, 2 * r - 6, { borderRadius: "50%", boxShadow: "inset 0 0 0 1px rgba(255,200,180,.35)" });
+  txt(p, cx - r, cy - 5, texte, "#ffe0c8", 9, { width: 2 * r * U + "px", textAlign: "center", textShadow: "0 1px 0 #4a0905" });
+  if (sous) txt(p, cx - r, cy + 4, sous, "#ffc9b0", 5, { width: 2 * r * U + "px", textAlign: "center" });
+}
+function ornement(p, x, y, w, couleur = "#8a6a3a") {
+  box(p, x, y, w, 1, { background: `linear-gradient(90deg, transparent, ${couleur} 20%, ${couleur} 80%, transparent)` });
+  box(p, x + w / 2 - 2, y - 2, 4, 4, { background: couleur, transform: "rotate(45deg)" });
+}
+function bouton(p, c, e, style = "bois") {
+  const x = slotX(c) - 1;
+  if (style === "bois") bois(p, x, 107, 18, 18, { borderRadius: "3px", boxShadow: "inset 0 0 0 2px #2e1b0c, inset 0 2px 0 rgba(255,220,160,.25)" });
+  else box(p, x, 107, 18, 18, style);
+  ico(p, slotX(c), 108, e, 14, { filter: "drop-shadow(0 1px 0 rgba(0,0,0,.6))" });
+}
+function inventaireBois(p, label = "Inventaire", couleurLabel = "#f3e4c0") {
+  bois(p, 0, 125, 176, 97, { borderRadius: "0 0 6px 6px" });
+  txt(p, 8, 128, label, couleurLabel, 8, { textShadow: "0 1px 0 #2e1b0c" });
+  const cs = (x, y) => box(p, x, y, 18, 18, { background: "rgba(25,14,5,.55)", boxShadow: "inset 2px 2px 0 rgba(0,0,0,.5), inset -1px -1px 0 rgba(255,220,160,.2)", borderRadius: "2px" });
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) cs(7 + 18 * c, 139 + 18 * r);
+  for (let c = 0; c < 9; c++) cs(7 + 18 * c, 197);
+}
+
+/* ─────────── 1. Parchemin enluminé ─────────── */
+(function enlumine() {
+  const g = scene("1 · Parchemin enluminé", "la B, en plus riche",
+    "Cadre en bois avec équerres en fer et rivets, parchemin taché aux bords brûlés, banderole à queues pliées, blasons cerclés d'or, jauges gravées avec embouts en laiton, ornements entre les lignes et sceau de cire pour le niveau total.",
+    176 + 8, 228, 4, 4);
+  bois(g, -4, -4, 184, 133, { borderRadius: "6px", boxShadow: "inset 0 0 0 3px #2e1b0c, 0 10px 26px rgba(0,0,0,.65)" });
+  parchemin(g, 4, 4, 168, 118, { borderRadius: "3px 5px 2px 6px" });
+  coinFer(g, -3, -3, 1, 1); coinFer(g, 178, -3, -1, 1); coinFer(g, -3, 125, 1, -1); coinFer(g, 178, 125, -1, -1);
+  banderole(g, 88, 1, 62, "Métiers");
+  METIERS.forEach((m, i) => {
+    const y = slotY(i) + 1;
+    blason(g, 7, y - 2, m);
+    txt(g, 30, y - 2, m.nom, "#3d2410", 8, { fontWeight: 700 });
+    txt(g, 30 + m.nom.length * 5 + 4, y - 2, "niv. " + m.niv, "#7a5530", 8);
+    txt(g, 140, y - 2, m.max ? "MAX" : m.pct + " %", m.max ? "#a3241a" : "#7a5530", 8, { fontWeight: m.max ? 700 : 400 });
+    jauge(g, 32, y + 8, 108, m.pct, m);
+    etoiles(g, 148, y + 7, m);
+    if (i < 4) ornement(g, 30, y + 16, 136);
+  });
+  sceau(g, 88, 116, 9, "148", "total");
+  bouton(g, 0, "⬅"); bouton(g, 8, "🔔");
+  inventaireBois(g);
+})();
+
+/* ─────────── 2. Grimoire ─────────── */
+(function grimoire() {
+  const g = scene("2 · Grimoire", "livre ouvert, déborde à gauche",
+    "Un livre relié de cuir. Page de gauche (en dehors du coffre) : ton portrait encadré, ton titre calligraphié, ton niveau total sur un sceau et ton rang. Page de droite : les métiers. Un signet rouge pend en bas.",
+    176 + 100, 228, 100, 4);
+  // couverture cuir
+  box(g, -100, -4, 280, 133, { background: `${GRAIN_BOIS}, linear-gradient(180deg,#6a2a1c,#4a1a10)`, borderRadius: "8px",
+    boxShadow: "inset 0 0 0 2px #2a0c06, inset 0 0 0 4px #b48a3a, inset 0 0 0 5px #2a0c06, 0 10px 26px rgba(0,0,0,.65)" });
+  // pages
+  parchemin(g, -94, 2, 92, 121, { borderRadius: "3px 0 0 3px", boxShadow: "inset -10px 0 14px -6px rgba(90,50,10,.6), inset 0 0 14px rgba(110,60,15,.4)" });
+  parchemin(g, 2, 2, 172, 121, { borderRadius: "0 3px 3px 0", boxShadow: "inset 10px 0 14px -6px rgba(90,50,10,.6), inset 0 0 14px rgba(110,60,15,.4)" });
+  box(g, -2, 2, 4, 121, { background: "linear-gradient(90deg,#a5844a,#5a3d15,#a5844a)" });  // reliure
+  // page gauche
+  txt(g, -90, 6, "Livre de", "#7a5530", 7, {}, "gothique");
+  txt(g, -90, 13, "Locktix", "#3d2410", 11, {}, "gothique");
+  box(g, -72, 30, 36, 36, { background: "linear-gradient(135deg,#e8c25a,#8a6418)", borderRadius: "3px" });
+  box(g, -70, 32, 32, 32, { background: "linear-gradient(135deg,#c58b5a,#8a5a35)" });
+  ico(g, -66, 36, "🙂", 24);
+  txt(g, -94, 70, "Expert mineur", "#1d6470", 8, { width: 92 * U + "px", textAlign: "center" }, "gothique");
+  ornement(g, -86, 82, 76);
+  sceau(g, -48, 98, 11, "148", "total");
+  txt(g, -94, 112, "2ᵉ du royaume", "#7a5530", 7, { width: 92 * U + "px", textAlign: "center" }, "gothique");
+  // page droite
+  txt(g, 7, 2, "L", "#b3261e", 15, { textShadow: "0 1px 0 #e8c25a" }, "gothique");   // lettrine
+  txt(g, 16, 5, "es Métiers", "#6e1510", 10, {}, "gothique");
+  METIERS.forEach((m, i) => {
+    const y = slotY(i) + 1;
+    blason(g, 7, y - 2, m);
+    txt(g, 30, y - 2, m.nom, "#3d2410", 8, { fontWeight: 700 });
+    txt(g, 30 + m.nom.length * 5 + 4, y - 2, "niv. " + m.niv, "#7a5530", 8);
+    txt(g, 140, y - 2, m.max ? "MAX" : m.pct + " %", m.max ? "#a3241a" : "#7a5530", 8);
+    jauge(g, 32, y + 8, 108, m.pct, m, "encre");
+    etoiles(g, 148, y + 7, m);
+  });
+  // signet
+  box(g, 150, 118, 8, 22, { background: "linear-gradient(90deg,#8a1a12,#c8402f,#8a1a12)", clipPath: "polygon(0 0,100% 0,100% 100%,50% 80%,0 100%)", zIndex: 2 });
+  bouton(g, 0, "⬅", { background: "rgba(120,80,30,.15)", borderRadius: "3px", boxShadow: "inset 0 0 0 1px rgba(120,80,30,.5)" });
+  bouton(g, 4, "🔔", { background: "rgba(120,80,30,.15)", borderRadius: "3px", boxShadow: "inset 0 0 0 1px rgba(120,80,30,.5)" });
+  bouton(g, 8, "✦", { background: "rgba(120,80,30,.15)", borderRadius: "3px", boxShadow: "inset 0 0 0 1px rgba(120,80,30,.5)" });
+  // inventaire : cuir
+  box(g, 0, 129, 176, 93, { background: `${GRAIN_BOIS}, linear-gradient(180deg,#5a2216,#3d140b)`, borderRadius: "0 0 6px 6px",
+    boxShadow: "inset 0 0 0 2px #2a0c06, inset 0 0 0 3px #b48a3a" });
+  txt(g, 8, 130, "Inventaire", "#e8c25a", 8);
+  const cs = (x, y) => box(g, x, y, 18, 18, { background: "rgba(0,0,0,.35)", boxShadow: "inset 0 0 0 1px rgba(232,194,90,.35)", borderRadius: "2px" });
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) cs(7 + 18 * c, 141 + 18 * r);
+  for (let c = 0; c < 9; c++) cs(7 + 18 * c, 199);
+})();
+
+/* ─────────── 3. Tableau de la guilde ─────────── */
+(function guilde() {
+  const g = scene("3 · Tableau de la guilde", "panneau d'affichage de taverne",
+    "Un grand panneau en planches avec une enseigne sculptée suspendue par des chaînes. Chaque métier est une affiche en parchemin clouée, avec son blason et une jauge à l'encre. Ambiance taverne.",
+    176 + 8, 232, 4, 10);
+  bois(g, -4, -8, 184, 137, { borderRadius: "4px", boxShadow: "inset 0 0 0 3px #2e1b0c, 0 10px 26px rgba(0,0,0,.65)" }, 0);
+  // enseigne + chaînes
+  [40, 136].forEach(x => box(g, x, -8, 2, 9, { background: "repeating-linear-gradient(180deg,#888 0 2px,#333 2px 3px)" }));
+  bois(g, 30, 0, 116, 15, { borderRadius: "3px", boxShadow: "inset 0 0 0 2px #2e1b0c, inset 0 2px 0 rgba(255,220,160,.3), 0 2px 0 rgba(0,0,0,.5)" });
+  txt(g, 30, 2, "Guilde des métiers", "#f3d78a", 9, { width: 116 * U + "px", textAlign: "center", textShadow: "0 1px 0 #2e1b0c" }, "gothique");
+  METIERS.forEach((m, i) => {
+    const y = slotY(i) + 1;
+    parchemin(g, 5, y - 2, 166, 17, { borderRadius: "1px 3px 2px 2px", boxShadow: "inset 0 0 8px rgba(110,60,15,.55), 0 2px 2px rgba(0,0,0,.45)" });
+    [[7, y - 1], [167, y - 1]].forEach(([x, yy]) => box(g, x, yy, 2, 2, { background: "radial-gradient(circle at 35% 35%,#ddd,#444)", borderRadius: "50%" }));
+    blason(g, 11, y - 1, m, 14, 15);
+    txt(g, 30, y - 2, m.nom, "#3d2410", 8, { fontWeight: 700 });
+    txt(g, 30 + m.nom.length * 5 + 4, y - 2, "niv. " + m.niv, "#7a5530", 8);
+    txt(g, 138, y - 2, m.max ? "MAX" : m.pct + " %", m.max ? "#a3241a" : "#7a5530", 8);
+    jauge(g, 32, y + 8, 106, m.pct, m, "encre");
+    etoiles(g, 146, y + 7, m);
+  });
+  bouton(g, 0, "⬅"); bouton(g, 4, "🔔"); bouton(g, 8, "✦");
+  inventaireBois(g);
+})();
+
+/* ─────────── 4. Château ─────────── */
+(function chateau() {
+  const g = scene("4 · Salle du château", "pierre, or et bannières",
+    "Cadre en pierre taillée avec liseré doré et deux torches. Fond en velours sombre, chaque métier a sa bannière à queue d'aronde à sa couleur, avec le texte sur un ruban de parchemin. Plus noble.",
+    176 + 8, 228, 4, 4);
+  // pierre
+  box(g, -4, -4, 184, 133, { background: `${GRAIN_PIERRE}, repeating-linear-gradient(0deg, transparent 0 23px, #3a3a3a 23px 26px), repeating-linear-gradient(90deg, #7d7d7d 0 46px, #3a3a3a 46px 49px, #8a8a8a 49px 95px, #3a3a3a 95px 98px)`,
+    borderRadius: "4px", boxShadow: "inset 0 0 0 3px #222, inset 0 0 14px rgba(0,0,0,.6), 0 10px 26px rgba(0,0,0,.65)" });
+  box(g, 4, 4, 168, 118, { background: `${GRAIN_PAPIER}, radial-gradient(ellipse at 50% 30%, #3a1a2a 0%, #24101a 70%, #160910 100%)`,
+    boxShadow: "inset 0 0 0 1px #e8c25a, inset 0 0 0 2px #6b4f18, inset 0 0 20px rgba(0,0,0,.7)" });
+  // torches
+  [[-2, 2], [172, 2]].forEach(([x, y]) => {
+    box(g, x + 1, y + 5, 3, 9, { background: "linear-gradient(90deg,#6e4524,#3d2410)" });
+    ico(g, x - 2, y - 2, "🔥", 9, { filter: "drop-shadow(0 0 6px rgba(255,160,40,.9))" });
+  });
+  txt(g, 4, 4, "~ Métiers ~", "#f3d78a", 10, { width: 168 * U + "px", textAlign: "center", textShadow: "0 0 8px rgba(243,215,138,.45), 0 1px 0 #000" }, "gothique");
+  METIERS.forEach((m, i) => {
+    const y = slotY(i) + 1;
+    // bannière
+    box(g, 7, y - 3, 18, 20, { background: `linear-gradient(180deg, ${m.c}, ${m.f})`, clipPath: "polygon(0 0,100% 0,100% 100%,50% 80%,0 100%)",
+      boxShadow: "inset 0 0 0 1px rgba(232,194,90,.6)" });
+    box(g, 6, y - 4, 20, 2, { background: "linear-gradient(90deg,#8a6418,#e8c25a,#8a6418)", borderRadius: "1px" });
+    ico(g, 9, y - 1, m.ico, 14, { filter: "drop-shadow(0 1px 0 rgba(0,0,0,.6))" });
+    // ruban
+    parchemin(g, 29, y - 2, 138, 16, { borderRadius: "2px", boxShadow: "inset 0 0 6px rgba(110,60,15,.5), 0 1px 0 rgba(0,0,0,.6)" });
+    txt(g, 32, y - 2, m.nom, "#3d2410", 8, { fontWeight: 700 });
+    txt(g, 32 + m.nom.length * 5 + 4, y - 2, "niv. " + m.niv, "#7a5530", 8);
+    txt(g, 138, y - 2, m.max ? "MAX" : m.pct + " %", m.max ? "#a3241a" : "#7a5530", 8);
+    jauge(g, 34, y + 8, 104, m.pct, m);
+    etoiles(g, 145, y + 7, m);
+  });
+  const or = { background: "linear-gradient(180deg,#3a1a2a,#24101a)", borderRadius: "3px", boxShadow: "inset 0 0 0 1px #e8c25a" };
+  bouton(g, 0, "⬅", or); bouton(g, 4, "🔔", or); bouton(g, 8, "✦", or);
+  // inventaire pierre
+  box(g, 0, 125, 176, 97, { background: `${GRAIN_PIERRE}, repeating-linear-gradient(0deg, transparent 0 23px, #3a3a3a 23px 26px), repeating-linear-gradient(90deg, #7d7d7d 0 46px, #3a3a3a 46px 49px, #8a8a8a 49px 95px, #3a3a3a 95px 98px)`,
+    borderRadius: "0 0 4px 4px", boxShadow: "inset 0 0 0 3px #222" });
+  txt(g, 8, 128, "Inventaire", "#f3d78a", 8, { textShadow: "0 1px 0 #000" });
+  const cs = (x, y) => box(g, x, y, 18, 18, { background: "rgba(20,10,15,.7)", boxShadow: "inset 0 0 0 1px rgba(232,194,90,.45)", borderRadius: "1px" });
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) cs(7 + 18 * c, 139 + 18 * r);
+  for (let c = 0; c < 9; c++) cs(7 + 18 * c, 197);
+})();
+</script>
+</body>
+</html>

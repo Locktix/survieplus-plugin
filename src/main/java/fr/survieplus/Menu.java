@@ -1,7 +1,9 @@
 package fr.survieplus;
 
+import fr.survieplus.pack.DessinsMenus;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -17,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,15 +42,32 @@ final class Menu implements InventoryHolder {
     private static final int SLOT_SOMMEIL = 22;
     private static final int SLOT_METIERS = 4;
     private static final int SLOT_GUIDE = 8;
+    /** Cases occupees (trouees dans le fond du menu dessine). */
+    static final int[] CASES = {SLOT_METIERS, SLOT_GUIDE, 10, 11, 12, 13, 14, 15, 16, SLOT_SOMMEIL};
 
     private final SurviePlus plugin;
     private final Player joueur;
+    private final DessinsMenus dessins;
     private final Inventory inv;
 
     Menu(SurviePlus plugin, Player joueur) {
         this.plugin = plugin;
         this.joueur = joueur;
-        this.inv = Bukkit.createInventory(this, 27, Component.text("SurviePlus", NamedTextColor.DARK_GREEN));
+        this.dessins = plugin.packs().pour(joueur);
+        Component titre = dessins != null ? dessins.titreSp(cadres())
+                : Component.text("SurviePlus", NamedTextColor.DARK_GREEN);
+        this.inv = Bukkit.createInventory(this, 27, titre);
+    }
+
+    /** Couleur du cadre de chaque option dans le menu dessine : vert = actif, rouge = coupe, gris = indisponible. */
+    private Map<Integer, TextColor> cadres() {
+        Map<Integer, TextColor> cadres = new HashMap<>();
+        EMPLACEMENTS.forEach((slot, m) -> {
+            boolean dispo = plugin.activeServeur(m) && joueur.hasPermission(m.permission) && plugin.debloque(joueur, m);
+            cadres.put(slot, !dispo ? DessinsMenus.CADRE_BLOQUE
+                    : plugin.choixJoueur(joueur, m) ? DessinsMenus.CADRE_ON : DessinsMenus.CADRE_OFF);
+        });
+        return cadres;
     }
 
     void ouvrir() {
@@ -61,8 +81,10 @@ final class Menu implements InventoryHolder {
     }
 
     private void dessiner() {
-        ItemStack vitre = objet(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
-        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, vitre);
+        if (dessins == null) {
+            ItemStack vitre = objet(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
+            for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, vitre);
+        }
         EMPLACEMENTS.forEach((slot, m) -> inv.setItem(slot, icone(m)));
         inv.setItem(SLOT_SOMMEIL, iconeSommeil());
         inv.setItem(SLOT_METIERS, iconeMetiers());
@@ -148,7 +170,9 @@ final class Menu implements InventoryHolder {
         plugin.basculer(joueur, m);
         boolean on = plugin.choixJoueur(joueur, m);
         joueur.playSound(joueur.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, on ? 1.2f : 0.8f);
-        inv.setItem(slot, icone(m));
+        // Menu dessine : le cadre de couleur fait partie du titre, on rouvre le menu pour le mettre a jour
+        if (dessins != null) new Menu(plugin, joueur).ouvrir();
+        else inv.setItem(slot, icone(m));
     }
 
     private static Component texte(String s, NamedTextColor couleur) {

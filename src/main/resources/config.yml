@@ -159,6 +159,16 @@ metiers:
       25: ["DIAMOND_SWORD sharpness:3 looting:2"]
       50: ["ENCHANTED_BOOK mending:1"]
 
+# Pack de ressources des menus : /sp et /metiers dessines (cadre, barres de progression, etoiles des bonus).
+# Il est envoye a la connexion, en plus de celui de Muscu. Ceux qui le refusent gardent les menus classiques.
+pack:
+  active: true
+  # vide = le serveur sert le pack lui-meme sur ce port (il doit etre joignable par les joueurs)
+  port: 25567
+  # sinon : adresse du dossier en ligne qui contient le pack (ex : https://minecraft.veldor.be).
+  # Le fichier a y mettre : plugins/SurviePlus/survieplus-menus.zip, renomme comme indique au demarrage.
+  adresse: ""
+
 # Guide : livre qui explique le serveur (options, metiers, bonus, recompenses ; genere d'apres cette config)
 # Donne une seule fois a la premiere connexion ; toujours lisible depuis /sp, et /sp guide en redonne un.
 guide:

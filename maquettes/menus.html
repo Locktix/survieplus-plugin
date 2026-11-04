@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SurviePlus – maquettes des menus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root { --u: 3px; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 24px 64px;
+    background: radial-gradient(ellipse at top, #2b3a2a 0%, #141a14 60%, #0d110d 100%);
+    color: #e8e8e8; font-family: "Segoe UI", system-ui, sans-serif;
+  }
+  h1 { font-family: "Pixelify Sans", monospace; font-size: 34px; margin: 0 0 6px; letter-spacing: 1px; }
+  .intro { color: #b9c2b9; max-width: 900px; line-height: 1.5; margin-bottom: 28px; }
+  .grille { display: flex; flex-wrap: wrap; gap: 40px 48px; align-items: flex-start; }
+  .bloc { display: flex; flex-direction: column; gap: 12px; }
+  .bloc h2 { font-family: "Pixelify Sans", monospace; font-size: 22px; margin: 0; }
+  .bloc h2 small { font-family: "Segoe UI", sans-serif; font-size: 13px; color: #9aa59a; font-weight: 400; margin-left: 6px; }
+  .bloc p { margin: 0; color: #b9c2b9; max-width: 560px; font-size: 14px; line-height: 1.45; }
+  .scene { position: relative; image-rendering: pixelated; }
+  .abs { position: absolute; }
+  .mc { font-family: "VT323", monospace; line-height: 1; white-space: nowrap; }
+  .ico { display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .note { margin-top: 40px; max-width: 900px; color: #b9c2b9; font-size: 14px; line-height: 1.55;
+          border-left: 3px solid #5c8f4a; padding: 6px 0 6px 14px; }
+  .note b { color: #e8e8e8; }
+</style>
+</head>
+<body>
+<h1>SurviePlus · maquettes du menu /metiers</h1>
+<div class="intro">
+  Taille réelle du jeu à l'échelle ×3 (comme sur ton écran). Les données sont des exemples.
+  Les icônes sont des emojis à la place des objets du jeu : en vrai ce seront la hache, la pioche, etc.
+  Tout ce que tu vois ici est faisable avec un resource pack, sans mod.
+</div>
+<div class="grille" id="grille"></div>
+
+<div class="note">
+  <b>Ce qui reste imposé par le jeu, quel que soit le style :</b><br>
+  · les objets (icônes cliquables) sont posés sur la grille du coffre : 9 colonnes de 18 px ;<br>
+  · les textes qui changent (niveaux, %) utilisent la police de Minecraft ; les titres fixes peuvent avoir n'importe quelle police, ils sont dessinés dans l'image ;<br>
+  · rien n'est animé (pas de barre qui se remplit en direct), mais tout est mis à jour à chaque ouverture ;<br>
+  · ton inventaire en bas reste là, mais on peut redessiner son fond pour qu'il aille avec le style.
+</div>
+
+<script>
+const U = 3;
+const METIERS = [
+  { nom: "Bûcheron", ico: "🪓", c: "#ffaa00", niv: 12, pct: 97, b1: false, b2: false },
+  { nom: "Mineur",   ico: "⛏️", c: "#55ffff", niv: 37, pct: 90, b1: true,  b2: true  },
+  { nom: "Fermier",  ico: "🌾", c: "#ffff55", niv: 50, pct: 100, b1: true,  b2: true, max: true },
+  { nom: "Pêcheur",  ico: "🎣", c: "#00aaaa", niv: 0,  pct: 24, b1: false, b2: false },
+  { nom: "Chasseur", ico: "🗡️", c: "#ff5555", niv: 49, pct: 99, b1: true,  b2: true  },
+];
+
+function box(parent, x, y, w, h, style = {}, cls = "") {
+  const d = document.createElement("div");
+  d.className = "abs " + cls;
+  Object.assign(d.style, { left: x * U + "px", top: y * U + "px", width: w * U + "px", height: h * U + "px" }, style);
+  parent.appendChild(d);
+  return d;
+}
+function txt(parent, x, y, t, color, size = 8, style = {}, cls = "mc") {
+  const d = document.createElement("div");
+  d.className = "abs " + cls;
+  d.textContent = t;
+  Object.assign(d.style, { left: x * U + "px", top: y * U + "px", color, fontSize: size * U * 1.25 + "px" }, style);
+  parent.appendChild(d);
+  return d;
+}
+function ico(parent, x, y, e, taille = 16, style = {}) {
+  const d = box(parent, x, y, taille, taille, style, "ico");
+  d.textContent = e;
+  d.style.fontSize = taille * U * 0.78 + "px";
+  return d;
+}
+function scene(titre, sous, desc, w, h, ox = 0) {
+  const bloc = document.createElement("div");
+  bloc.className = "bloc";
+  bloc.innerHTML = `<h2>${titre}<small>${sous}</small></h2><p>${desc}</p>`;
+  const s = document.createElement("div");
+  s.className = "scene";
+  s.style.width = w * U + "px";
+  s.style.height = h * U + "px";
+  bloc.appendChild(s);
+  document.getElementById("grille").appendChild(bloc);
+  return box(s, ox, 0, 176, 222);  // repère : coin haut gauche du coffre
+}
+const slotX = c => 8 + 18 * c, slotY = r => 18 + 18 * r;
+function etoile(parent, x, y, on, couleurOn = "#ffc83a", couleurOff = "#4a4a50", t = 7) {
+  return txt(parent, x, y - 1, "★", on ? couleurOn : couleurOff, t, { textShadow: on ? "0 0 6px rgba(255,200,58,.6)" : "none" });
+}
+
+/* ─────────────── Inventaire du joueur (bas du coffre) ─────────────── */
+function inventaire(g, fond, caseFond, caseBord, rayon = 0, texteCouleur = "#404040", label = "Inventaire") {
+  box(g, 0, 125, 176, 97, fond);
+  txt(g, 8, 128, label, texteCouleur, 8);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++)
+    box(g, 7 + 18 * c, 139 + 18 * r, 18, 18, { background: caseFond, boxShadow: caseBord, borderRadius: rayon * U + "px" });
+  for (let c = 0; c < 9; c++)
+    box(g, 7 + 18 * c, 197, 18, 18, { background: caseFond, boxShadow: caseBord, borderRadius: rayon * U + "px" });
+}
+
+/* ─────────────── 0. Actuel ─────────────── */
+(function actuel() {
+  const g = scene("Actuel", "ce que tu as testé", "Le style des interfaces du jeu, avec des cartes sombres. Propre mais trop proche du vanilla.", 176, 222);
+  const bord = "inset 3px 3px 0 #fff, inset -3px -3px 0 #555, 0 0 0 3px #000";
+  box(g, 0, 0, 176, 125, { background: "#c6c6c6", boxShadow: bord, borderRadius: "6px 6px 0 0" });
+  txt(g, 8, 5, "Métiers", "#404040");
+  txt(g, 104, 5, "Niveau total 148", "#404040");
+  METIERS.forEach((m, i) => {
+    const y = slotY(i);
+    box(g, 7, y - 1, 18, 18, { background: "#8b8b8b", boxShadow: "inset 3px 3px 0 #373737, inset -3px -3px 0 #fff" });
+    ico(g, 8, y, m.ico);
+    box(g, 25, y - 1, 144, 18, { background: "#2e2e33", boxShadow: "inset 3px 3px 0 #373737, inset -3px -3px 0 #fff" });
+    txt(g, 29, y, m.nom, m.c);
+    txt(g, 29 + m.nom.length * 5 + 3, y, "niv. " + m.niv, "#fff");
+    txt(g, 146, y, m.max ? "MAX" : m.pct + " %", m.max ? "#ffaa00" : "#aaa");
+    box(g, 29, y + 10, 116, 4, { background: "#18181b" });
+    box(g, 29, y + 10, 116 * m.pct / 100, 4, { background: m.c });
+    etoile(g, 149, y + 9, m.b1, "#ffaa00");
+    etoile(g, 158, y + 9, m.b2, "#ffaa00");
+  });
+  inventaire(g, { background: "#c6c6c6", boxShadow: "inset 3px 0 0 #fff, inset -3px -3px 0 #555, 0 0 0 3px #000", borderRadius: "0 0 6px 6px" },
+             "#8b8b8b", "inset 3px 3px 0 #373737, inset -3px -3px 0 #fff");
+})();
+
+/* ─────────────── A. Moderne sombre ─────────────── */
+(function moderne() {
+  const g = scene("A · Moderne sombre", "look « gros serveur »",
+    "Panneaux sombres aux coins arrondis, barres en dégradé lumineux, dessin en haute résolution. Le menu déborde du coffre : un panneau à gauche avec ta tête, ton titre et ton rang. Ton inventaire passe aussi en sombre.",
+    176 + 96, 222, 96);
+  // panneau latéral
+  const lat = box(g, -94, 0, 88, 125, { background: "linear-gradient(180deg,#232634,#171922)", borderRadius: "12px",
+    boxShadow: "0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.6)" });
+  box(g, -74, 10, 48, 48, { background: "linear-gradient(135deg,#c58b5a,#8a5a35)", borderRadius: "8px",
+    boxShadow: "0 0 0 2px #55ffff, 0 0 18px rgba(85,255,255,.45)" });
+  ico(g, -66, 18, "🙂", 32);
+  txt(g, -86, 64, "Locktix", "#fff", 9, { fontWeight: 700 });
+  txt(g, -86, 75, "Expert mineur", "#55ffff", 7);
+  txt(g, -86, 90, "NIVEAU TOTAL", "#8b90a8", 6, { letterSpacing: "1px" }, "mc");
+  txt(g, -86, 98, "148", "#fff", 16, { textShadow: "0 0 10px rgba(255,255,255,.35)" });
+  txt(g, -86, 115, "#2 du serveur", "#ffc83a", 7);
+  // panneau principal
+  box(g, 0, 0, 176, 125, { background: "linear-gradient(180deg,#232634 0%,#171922 100%)", borderRadius: "12px 12px 0 0",
+    boxShadow: "0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.6)" });
+  txt(g, 8, 4, "MÉTIERS", "#fff", 9, { fontFamily: "'Pixelify Sans'", fontWeight: 700, letterSpacing: "2px" }, "");
+  box(g, 8, 14, 40, 1, { background: "linear-gradient(90deg,#55ffff,transparent)" });
+  txt(g, 120, 5, "5 métiers", "#8b90a8", 7);
+  METIERS.forEach((m, i) => {
+    const y = slotY(i);
+    box(g, 6, y - 2, 164, 19, { background: "rgba(255,255,255,.04)", borderRadius: "6px", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" });
+    box(g, 6, y - 2, 2, 19, { background: m.c, borderRadius: "6px 0 0 6px", boxShadow: `0 0 10px ${m.c}` });
+    box(g, 8, y, 16, 16, { background: "rgba(0,0,0,.35)", borderRadius: "4px", boxShadow: `inset 0 0 0 1px ${m.c}55` });
+    ico(g, 8, y, m.ico);
+    txt(g, 29, y - 1, m.nom, "#fff", 8, { fontWeight: 600 });
+    box(g, 29 + m.nom.length * 5 + 4, y - 1, 24, 8, { background: m.c + "26", borderRadius: "8px", boxShadow: `inset 0 0 0 1px ${m.c}66` });
+    txt(g, 29 + m.nom.length * 5 + 7, y - 1, "NIV " + m.niv, m.c, 7);
+    txt(g, 140, y - 1, m.max ? "MAX" : m.pct + "%", m.max ? "#ffc83a" : "#c9cde0", 8, { fontWeight: 600 });
+    box(g, 29, y + 10, 114, 4, { background: "#0d0e14", borderRadius: "6px", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)" });
+    box(g, 29, y + 10, 114 * m.pct / 100, 4, { background: `linear-gradient(90deg, ${m.c}aa, ${m.c})`, borderRadius: "6px", boxShadow: `0 0 8px ${m.c}99` });
+    etoile(g, 149, y + 8, m.b1);
+    etoile(g, 158, y + 8, m.b2);
+  });
+  // boutons
+  [["⬅", 0, "Retour"], ["🔔", 4, "Barre"], ["✦", 8, "Classement"]].forEach(([e, c]) => {
+    box(g, slotX(c) - 1, 107, 18, 18, { background: "linear-gradient(180deg,#2c3042,#1f2230)", borderRadius: "5px", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.1)" });
+    ico(g, slotX(c), 108, e, 14);
+  });
+  inventaire(g, { background: "linear-gradient(180deg,#171922,#12141b)", borderRadius: "0 0 12px 12px", boxShadow: "0 0 0 1px rgba(255,255,255,.08)" },
+             "rgba(255,255,255,.05)", "inset 0 0 0 1px rgba(255,255,255,.07)", 3, "#8b90a8");
+})();
+
+/* ─────────────── B. Médiéval parchemin ─────────────── */
+(function medieval() {
+  const g = scene("B · Médiéval / parchemin", "ambiance survie",
+    "Cadre en bois avec clous en fer, fond parchemin, titre sur une banderole rouge. Chaque métier a son blason à sa couleur, la barre ressemble à une jauge gravée.",
+    176, 228);
+  const bois = "repeating-linear-gradient(90deg,#6b4423 0 6px,#5c3a1e 6px 9px,#734a27 9px 15px)";
+  box(g, -3, -3, 182, 131, { background: bois, borderRadius: "6px", boxShadow: "inset 0 0 0 3px #3b2412, 0 8px 24px rgba(0,0,0,.6)" });
+  [[-1, -1], [171, -1], [-1, 122], [171, 122]].forEach(([x, y]) =>
+    box(g, x, y, 5, 5, { background: "radial-gradient(circle at 35% 35%,#d9d9d9,#6f6f6f)", borderRadius: "50%", boxShadow: "0 1px 0 #000" }));
+  box(g, 4, 4, 168, 117, { background: "radial-gradient(ellipse at center,#f3e4c0 0%,#e3cc98 70%,#c9ad74 100%)",
+    boxShadow: "inset 0 0 18px rgba(110,70,20,.45)", borderRadius: "2px" });
+  // banderole
+  box(g, 48, 1, 80, 13, { background: "linear-gradient(180deg,#b3261e,#7d1712)", clipPath: "polygon(0 0,100% 0,94% 50%,100% 100%,0 100%,6% 50%)", boxShadow: "0 2px 0 #4a0d0a" });
+  txt(g, 66, 3, "Métiers", "#ffe9b0", 9, { fontFamily: "'Pixelify Sans'", fontWeight: 700, textShadow: "0 2px 0 #4a0d0a" }, "");
+  METIERS.forEach((m, i) => {
+    const y = slotY(i) + 1;
+    // blason
+    box(g, 6, y - 2, 20, 19, { background: `linear-gradient(180deg, ${m.c}, ${m.c}99)`, clipPath: "polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)",
+      filter: "drop-shadow(0 1px 0 #3b2412)" });
+    ico(g, 8, y - 1, m.ico, 15);
+    txt(g, 30, y - 2, m.nom, "#4a2c12", 8, { fontWeight: 700 });
+    txt(g, 30 + m.nom.length * 5 + 4, y - 2, "· niv. " + m.niv, "#7a5530", 8);
+    txt(g, 144, y - 2, m.max ? "MAX" : m.pct + " %", m.max ? "#b3261e" : "#7a5530", 8);
+    box(g, 30, y + 8, 112, 5, { background: "#c9ad74", boxShadow: "inset 0 1px 0 #8a6a3a, inset 0 -1px 0 #f5e6c4", borderRadius: "2px" });
+    box(g, 30, y + 8, 112 * m.pct / 100, 5, { background: `linear-gradient(180deg, ${m.c}, ${m.c}aa)`, borderRadius: "2px", boxShadow: "inset 0 -1px 0 rgba(0,0,0,.35)" });
+    etoile(g, 148, y + 7, m.b1, "#d4a017", "#bfa477");
+    etoile(g, 157, y + 7, m.b2, "#d4a017", "#bfa477");
+    if (i < 4) box(g, 30, y + 15, 135, 1, { background: "linear-gradient(90deg,transparent,#a8874f,transparent)" });
+  });
+  inventaire(g, { background: bois, borderRadius: "0 0 6px 6px", boxShadow: "inset 0 0 0 3px #3b2412" },
+             "#e3cc98", "inset 2px 2px 0 #a8874f, inset -2px -2px 0 #f5e6c4", 1, "#f3e4c0");
+})();
+
+/* ─────────────── C. Grandes cartes ─────────────── */
+(function cartes() {
+  const g = scene("C · Grandes cartes", "style jeu vidéo",
+    "Les 5 métiers en grandes cartes côte à côte : icône, gros chiffre du niveau, jauge verticale, étoiles des bonus. On voit tout d'un coup d'œil.",
+    176, 222);
+  box(g, 0, 0, 176, 125, { background: "linear-gradient(180deg,#1b2a4a,#101a30)", borderRadius: "10px 10px 0 0",
+    boxShadow: "0 0 0 1px rgba(120,160,255,.25), 0 10px 30px rgba(0,0,0,.6)" });
+  box(g, 0, 0, 176, 125, { background: "repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0 2px,transparent 2px 8px)", borderRadius: "10px 10px 0 0" });
+  txt(g, 8, 4, "MÉTIERS", "#fff", 9, { fontFamily: "'Pixelify Sans'", fontWeight: 700, letterSpacing: "2px" }, "");
+  box(g, 116, 3, 52, 10, { background: "rgba(255,200,58,.15)", borderRadius: "10px", boxShadow: "inset 0 0 0 1px rgba(255,200,58,.5)" });
+  txt(g, 120, 4, "Total 148", "#ffc83a", 8);
+  METIERS.forEach((m, i) => {
+    const x = slotX(i * 2) - 9;   // carte centrée sur la colonne 0, 2, 4, 6, 8
+    box(g, x, 17, 34, 88, { background: `linear-gradient(180deg, ${m.c}33, rgba(255,255,255,.04) 40%)`, borderRadius: "6px",
+      boxShadow: `inset 0 0 0 1px ${m.c}88, 0 0 12px ${m.c}33` });
+    box(g, x + 8, 20, 18, 18, { background: "rgba(0,0,0,.35)", borderRadius: "5px" });
+    ico(g, slotX(i * 2), 21, m.ico);
+    txt(g, x + 2, 40, m.nom, m.c, 6, { width: 30 * U + "px", textAlign: "center" });
+    txt(g, x + 2, 47, String(m.niv), "#fff", 15, { width: 30 * U + "px", textAlign: "center", textShadow: `0 0 10px ${m.c}` });
+    // jauge verticale
+    box(g, x + 13, 64, 8, 28, { background: "#0a1020", borderRadius: "4px", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" });
+    const h = 28 * m.pct / 100;
+    box(g, x + 13, 64 + 28 - h, 8, h, { background: `linear-gradient(0deg, ${m.c}99, ${m.c})`, borderRadius: "4px", boxShadow: `0 0 8px ${m.c}aa` });
+    txt(g, x + 2, 93, m.max ? "MAX" : m.pct + "%", m.max ? "#ffc83a" : "#c9d3ef", 6, { width: 30 * U + "px", textAlign: "center" });
+    etoile(g, x + 9, 99, m.b1, "#ffc83a", "#2c3a5a", 6);
+    etoile(g, x + 18, 99, m.b2, "#ffc83a", "#2c3a5a", 6);
+  });
+  [["⬅", 0], ["🔔", 4], ["✦", 8]].forEach(([e, c]) => {
+    box(g, slotX(c) - 1, 107, 18, 18, { background: "rgba(255,255,255,.06)", borderRadius: "5px", boxShadow: "inset 0 0 0 1px rgba(120,160,255,.3)" });
+    ico(g, slotX(c), 108, e, 14);
+  });
+  inventaire(g, { background: "linear-gradient(180deg,#101a30,#0b1324)", borderRadius: "0 0 10px 10px", boxShadow: "0 0 0 1px rgba(120,160,255,.25)" },
+             "rgba(255,255,255,.05)", "inset 0 0 0 1px rgba(120,160,255,.18)", 3, "#7f8db3");
+})();
+</script>
+</body>
+</html>
