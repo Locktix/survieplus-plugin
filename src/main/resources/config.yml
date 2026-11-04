@@ -86,9 +86,12 @@ metiers:
     chasseur-tete: 5       # % de chance (zombie, squelette, creeper, wither squelette, piglin)
     croissance-chance: 10  # % de chance par culture, toutes les 10 secondes
     croissance-rayon: 4    # en blocs autour du fermier
-  # titre du meilleur metier devant le nom dans le chat (des le niveau 10 :
-  # Apprenti, Compagnon 20, Expert 30, Maitre 40, Grand maitre 50)
-  titre-chat: true
+  # titre du meilleur metier dans le chat (des le niveau 10 : Apprenti, Compagnon 20, Expert 30,
+  # Maitre 40, Grand maitre 50) :
+  #   survol  = en survolant le pseudo (le chat reste sobre, l'etoile de Muscu suffit)
+  #   prefixe = [Expert mineur] devant le pseudo
+  #   non     = nulle part (seulement dans /metiers)
+  titre-chat: survol
   # annonce a tout le serveur quand un joueur obtient un nouveau titre a partir de ce niveau (0 = jamais)
   annonce-niveau: 40
   # bonus d'XP quand un autre joueur est proche

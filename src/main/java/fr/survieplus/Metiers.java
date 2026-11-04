@@ -4,6 +4,7 @@ import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -645,15 +646,39 @@ final class Metiers implements Listener {
 
     // ------------------------------------------------------------ titre dans le chat
 
+    /**
+     * Ou afficher le titre dans le chat : "survol" (infobulle sur le pseudo, par defaut),
+     * "prefixe" ([Expert mineur] devant le pseudo) ou "non".
+     */
+    String modeTitreChat() {
+        String mode = cfg().getString("metiers.titre-chat", "survol").trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (mode) {
+            case "prefixe", "prefix" -> "prefixe";
+            case "non", "false", "aucun" -> "non";
+            default -> "survol"; // "true" des anciennes configs compris
+        };
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onChat(AsyncChatEvent e) {
-        if (!actif() || !cfg().getBoolean("metiers.titre-chat", true)) return;
+        String mode = modeTitreChat();
+        if (!actif() || mode.equals("non")) return;
         UUID id = e.getPlayer().getUniqueId();
         String titre = titre(id);
         if (titre == null) return;
-        Component prefixe = Component.text("[" + titre + "] ", meilleurMetier(id).couleur);
+        NamedTextColor couleur = meilleurMetier(id).couleur;
         ChatRenderer ancien = e.renderer();
-        e.renderer((source, nom, message, lecteur) -> prefixe.append(ancien.render(source, nom, message, lecteur)));
+        if (mode.equals("prefixe")) {
+            Component prefixe = Component.text("[" + titre + "] ", couleur);
+            e.renderer((source, nom, message, lecteur) -> prefixe.append(ancien.render(source, nom, message, lecteur)));
+            return;
+        }
+        // Survol : le pseudo (deja decore par Muscu, ex. "★5 Pseudo") garde son apparence,
+        // le titre et le niveau total apparaissent dans une infobulle
+        Component infobulle = Component.text(titre, couleur)
+                .append(Component.text("\nNiveau total des métiers : " + niveauTotal(id), NamedTextColor.GRAY));
+        e.renderer((source, nom, message, lecteur) ->
+                ancien.render(source, nom.hoverEvent(HoverEvent.showText(infobulle)), message, lecteur));
     }
 
     // ------------------------------------------------------------ connexion

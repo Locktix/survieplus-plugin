@@ -284,7 +284,12 @@ final class Guide implements Listener {
             page.append(discret("Niv. " + niv + "  ")).append(gras(rangs[i], i >= 3 ? NamedTextColor.DARK_PURPLE : ENCRE))
                     .append(Component.text("\n"));
         }
-        page.append(Component.text("\n")).append(t("Ton meilleur métier s'affiche dans le chat."));
+        String ouTitre = switch (plugin.metiers().modeTitreChat()) {
+            case "prefixe" -> "Ton meilleur métier s'affiche devant ton pseudo dans le chat.";
+            case "non" -> "Ton titre est visible dans /metiers.";
+            default -> "Survole un pseudo dans le chat pour voir son titre.";
+        };
+        page.append(Component.text("\n")).append(t(ouTitre));
         int annonce = plugin.getConfig().getInt("metiers.annonce-niveau", 40);
         if (annonce > 0) page.append(t("\n\nDès le niv. " + annonce + ", tout le serveur est prévenu !"));
         return page.build();
