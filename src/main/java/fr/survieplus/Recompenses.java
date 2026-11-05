@@ -59,7 +59,8 @@ final class Recompenses {
         return res;
     }
 
-    private ItemStack lire(String texte) {
+    /** Objet decrit par "MATERIAU [quantite] [enchantement:niveau ...]", ou null (signale dans la console). */
+    ItemStack lire(String texte) {
         String[] t = texte.trim().split("\\s+");
         Material mat = Material.matchMaterial(t[0]);
         if (mat == null || !mat.isItem() || mat.isAir()) {
@@ -96,15 +97,14 @@ final class Recompenses {
 
     private void signaler(String probleme) {
         if (dejaSignales.add(probleme))
-            plugin.getLogger().warning("config.yml, metiers.recompenses : " + probleme);
+            plugin.getLogger().warning("config.yml, recompenses : " + probleme);
     }
 
     /** Donne les recompenses des niveaux franchis (avant exclu, apres inclus). */
     void donner(Player p, Metier m, int avant, int apres) {
         for (var entree : paliers(m).subMap(avant + 1, apres + 1).entrySet()) {
             for (ItemStack it : entree.getValue()) {
-                p.getInventory().addItem(it.clone()).values()
-                        .forEach(reste -> p.getWorld().dropItem(p.getLocation(), reste));
+                remettre(p, it);
                 p.sendMessage(SurviePlus.PREFIXE
                         .append(Component.text("Récompense " + m.nom + " niv. " + entree.getKey() + " : ", NamedTextColor.GOLD))
                         .append(it.displayName())
@@ -112,6 +112,11 @@ final class Recompenses {
             }
             p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.8f, 0.8f);
         }
+    }
+
+    /** Met l'objet dans l'inventaire du joueur (a ses pieds s'il est plein). */
+    static void remettre(Player p, ItemStack it) {
+        p.getInventory().addItem(it.clone()).values().forEach(reste -> p.getWorld().dropItem(p.getLocation(), reste));
     }
 
     /** Nom de l'objet (traduit par le client) + quantite. */

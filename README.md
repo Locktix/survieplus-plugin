@@ -11,7 +11,8 @@ Chaque fonction est un module qu'on peut couper dans `config.yml` ou, pour le jo
 - **Tombe** : à la mort, les objets sont gardés dans une tombe au lieu de tomber par terre.
 - **Tri** : Maj + clic droit sur une case vide pour trier un coffre ou son inventaire.
 - **Sommeil partagé** : un pourcentage des joueurs suffit pour passer la nuit.
-- **Filet de capture** : attrape un animal ou un monstre (affaibli) et relâche-le ailleurs, tel quel.
+- **Filet de capture** : attrape un animal ou un monstre du premier coup et relâche-le ailleurs, tel quel.
+- **Bestiaire** : chaque espèce attrapée au filet s'y ajoute ; récompenses par palier et médaille du naturaliste.
 - **Métiers** : Bûcheron, Mineur, Fermier, Pêcheur et Chasseur progressent en jouant (50 niveaux,
   bonus aux niveaux 20 et 35, objets offerts, titres, classements).
 - **Menus en images** grâce à un resource pack (les joueurs qui le refusent gardent les menus classiques).
@@ -26,6 +27,7 @@ Le détail de chaque version est dans le [CHANGELOG](CHANGELOG.md).
 | `/survieplus` (`/sp`) | Menu des options du joueur | — |
 | `/sp guide` | Redonne le livre guide | — |
 | `/metiers` (`/metier`) | Niveaux, bonus et classements | `survieplus.metiers` |
+| `/bestiaire` | Espèces attrapées au filet, paliers de récompenses | `survieplus.capture` |
 | `/metiers donner <joueur> <metier> <xp>` | Donne de l'XP de métier | `survieplus.admin` |
 | `/metiers reset <joueur>` | Remet les métiers d'un joueur à zéro | `survieplus.admin` |
 | `/survieplus reload` | Recharge la configuration | `survieplus.admin` |
@@ -40,8 +42,11 @@ Recette : 8 ficelles autour d'une perle de l'Ender.
 - Clic droit sur un animal ou un monstre : il entre dans le filet.
 - Clic droit sur un bloc : il ressort (accroupi sur un coffre ou une porte).
 
-Les monstres doivent être sous 50 % de leur vie, les boss ne se capturent pas, et le filet se déchire après
+Animaux et monstres s'attrapent du premier coup, les boss ne se capturent pas, et le filet se déchire après
 10 captures. Tout se règle dans la section `capture:` de `config.yml`.
+
+Chaque nouvelle espèce attrapée s'ajoute au **bestiaire** (`/bestiaire`) : récompenses à 10, 25 et 50 espèces
+et quand on les a toutes (section `bestiaire:`), XP de Chasseur, et médaille du naturaliste pour qui le complète.
 
 ## Prérequis
 

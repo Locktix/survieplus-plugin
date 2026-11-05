@@ -3,6 +3,32 @@
 Toutes les versions de SurviePlus. Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 numéros de version : [SemVer](https://semver.org/lang/fr/) (nouvelle fonction = 1.x.0, correctif = 1.x.y).
 
+## [1.3.0] — 2026-11-05
+
+### Ajouté
+- **Bestiaire** : chaque espèce attrapée au filet s'y ajoute (une fois par espèce).
+  - `/bestiaire`, ou le livre en bas à gauche de `/sp` : une case par espèce, l'œuf de celles qu'on a
+    capturées et une page déchirée avec un point d'interrogation pour les autres. 45 espèces par page.
+  - Toutes les espèces qu'un filet peut attraper et qu'on trouve dans la nature : les animaux d'abord,
+    puis les monstres (boss et mobs interdits dans `capture.interdits` exclus).
+  - **Récompenses** à 10, 25 et 50 espèces, et quand on les a toutes, annoncées à tout le serveur ;
+    **XP de Chasseur** pour chaque nouvelle espèce (`bestiaire.xp-chasseur`, 30 par défaut).
+  - **Médaille du naturaliste** pour qui complète le bestiaire : un souvenir à son nom.
+  - Page « Le bestiaire » dans le livre guide, après celle du filet.
+  - Réglages dans `bestiaire:` (`config.yml`).
+- Images Higgsfield : fond « carnet de naturaliste » du menu (page quadrillée dans une reliure de cuir vert,
+  plume et empreinte dans la ligne du bas), icônes du livre, de l'espèce inconnue et de la médaille.
+  Préparées par `outils/PrepBestiaire.java` et `outils/PrepIcones.java` (qui remplace `PrepFilet.java`).
+
+### Modifié
+- **Le filet attrape les monstres du premier coup** : plus besoin de les affaiblir avant. Le réglage
+  `capture.monstres-vie-max` est supprimé (s'il reste dans `config.yml`, il est ignoré).
+
+### Corrigé
+- Le clic qui attrape un mob ne le relâche plus aussitôt quand il y a de l'herbe ou un bloc derrière lui
+  (Paper voyait la suite du clic comme un clic sur ce bloc).
+- Juste après une capture, « Vise un bloc pour relâcher le mob » ne remplace plus « Attrapé : … ».
+
 ## [1.2.0] — 2026-11-05
 
 ### Ajouté

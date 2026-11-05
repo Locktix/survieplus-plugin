@@ -187,7 +187,8 @@ final class Guide implements Listener {
 
         sections.add(new Section(objet("writable_book"), "Les options", List.of(pageOptions())));
         if (plugin.getConfig().getBoolean("capture.active", true) && p.hasPermission(Capture.PERMISSION))
-            sections.add(new Section(bloc("cobweb"), "Le filet", List.of(pageFilet())));
+            sections.add(new Section(bloc("cobweb"), "Le filet", plugin.bestiaire().actif()
+                    ? List.of(pageFilet(), pageBestiaire()) : List.of(pageFilet())));
         if (mt.actif()) {
             sections.add(new Section(objet("experience_bottle"), "Les métiers", List.of(pageMetiers())));
             sections.add(new Section(objet("nether_star"), "Les niveaux", List.of(pageNiveaux())));
@@ -265,17 +266,29 @@ final class Guide implements Listener {
 
     private Component pageFilet() {
         var cfg = plugin.getConfig();
-        int seuil = cfg.getInt("capture.monstres-vie-max", 50);
         int usages = cfg.getInt("capture.utilisations", 10);
         var page = page().append(titre(bloc("cobweb"), "Le filet", TITRE))
                 .append(t("8 ")).append(objet("string")).append(t(" autour d'une ")).append(objet("ender_pearl"))
                 .append(Component.text("\n\n"))
                 .append(gras("Clic droit", ENCRE)).append(t(" sur un animal ou un monstre : il entre dans le filet.\n\n"))
                 .append(gras("Clic droit", ENCRE)).append(t(" sur un bloc : il ressort, tel quel.\n\n"));
-        if (seuil < 100) page.append(discret("Monstres : affaiblis-les d'abord (moins de " + seuil + " % de vie).\n"));
         page.append(discret("Pas de boss."));
         if (usages > 0) page.append(discret(" Se déchire après " + usages + " captures."));
         return page.build();
+    }
+
+    private Component pageBestiaire() {
+        int total = plugin.bestiaire().especes().size();
+        var paliers = plugin.bestiaire().paliers(total).keySet().stream().filter(n -> n < total).map(String::valueOf).toList();
+        var page = page().append(titre(objet("book"), "Le bestiaire", TITRE))
+                .append(t("Chaque espèce attrapée au filet s'y ajoute : ")).append(gras(total + " à trouver", ENCRE))
+                .append(t(".\n\n"));
+        if (!paliers.isEmpty())
+            page.append(t("Des récompenses à " + String.join(", ", paliers) + " espèces"))
+                    .append(t(plugin.getConfig().getBoolean("bestiaire.medaille", true)
+                            ? ", et une médaille pour qui les trouve toutes !\n\n" : ".\n\n"));
+        page.append(discret("Chaque nouvelle espèce donne de l'XP de Chasseur.\n\n"));
+        return page.append(lienCommande("Mon bestiaire : /bestiaire", "/bestiaire")).build();
     }
 
     private Component pageMetiers() {

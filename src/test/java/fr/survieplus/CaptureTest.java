@@ -4,23 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Regles du filet de capture : vie des monstres et usure. */
+/** Regles du filet de capture : usure. */
 class CaptureTest {
-
-    @Test
-    void unMonstreDoitEtreAffaibli() {
-        // Zombie : 20 points de vie, seuil 50 %
-        assertFalse(Capture.assezAffaibli(20, 20, 50));
-        assertFalse(Capture.assezAffaibli(10.5, 20, 50));
-        assertTrue(Capture.assezAffaibli(10, 20, 50), "pile 50 % : capturable");
-        assertTrue(Capture.assezAffaibli(1, 20, 50));
-    }
-
-    @Test
-    void seuilA100CaptureToujours() {
-        assertTrue(Capture.assezAffaibli(20, 20, 100));
-        assertTrue(Capture.assezAffaibli(5, 0, 50), "vie max inconnue : pas de blocage");
-    }
 
     @Test
     void unFiletDeDixCapturesSertDixFois() {

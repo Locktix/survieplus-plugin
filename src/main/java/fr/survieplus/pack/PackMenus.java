@@ -46,6 +46,11 @@ public final class PackMenus {
     public static final String FILET_VIDE = "survieplus:filet_vide", FILET_PLEIN = "survieplus:filet_plein";
     /** Objet du jeu dont le filet emprunte le modele. */
     public static final Key MODELE_FILET = Key.key("minecraft", "cobweb");
+    /** Medaille du naturaliste (bestiaire complet) : modele de pepite d'or sans le pack. */
+    public static final String MEDAILLE = "survieplus:medaille";
+    public static final Key MODELE_MEDAILLE = Key.key("minecraft", "gold_nugget");
+    /** Icones des menus, seulement pour ceux qui ont le pack (item_model direct). */
+    public static final Key INCONNU = Key.key("survieplus", "inconnu"), BESTIAIRE = Key.key("survieplus", "bestiaire");
     /** Position du titre dans un menu de coffre. */
     static final int TITRE_X = 8, TITRE_Y = 6;
     private static final int FORMAT = 97;
@@ -127,6 +132,13 @@ public final class PackMenus {
         modele.addProperty("parent", "minecraft:item/generated");
         modele.add("textures", textures);
         fichiers.put("assets/survieplus/models/item/" + nom + ".json", modele.toString().getBytes(StandardCharsets.UTF_8));
+        // Definition d'objet survieplus:<nom>, pour item_model (icones des menus dessines)
+        JsonObject m = new JsonObject();
+        m.addProperty("type", "minecraft:model");
+        m.addProperty("model", "survieplus:item/" + nom);
+        JsonObject def = new JsonObject();
+        def.add("model", m);
+        fichiers.put("assets/survieplus/items/" + nom + ".json", def.toString().getBytes(StandardCharsets.UTF_8));
     }
 
     /**

@@ -3,31 +3,34 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 
 /**
- * Prepare les textures du filet de capture a partir de l'image Higgsfield (a lancer a la main) :
- *   java outils/PrepFilet.java maquettes/higgsfield/filet.png src/main/resources/pack/objets 32
- * L'image contient deux icones sur fond magenta : filet vide a gauche, filet plein a droite.
- * Chaque icone est detouree, recadree au carre puis reduite en pixel art (32 x 32 : en 16 x 16 les mailles du filet deviennent illisibles).
- * Un apercu agrandi (apercu_*.png) est ecrit dans le dossier parent : a verifier puis supprimer.
+ * Decoupe une planche d'icones Higgsfield en textures d'objets du pack (a lancer a la main) :
+ *   java outils/PrepIcones.java <image> <dossier> <taille> <nom1> <nom2> ...
+ * L'image contient les icones cote a cote sur fond magenta, une par part egale de la largeur, dans l'ordre des noms.
+ * Chaque icone est detouree, recadree au carre puis reduite en pixel art (32 x 32 : en 16 x 16 les details
+ * deviennent illisibles) ; toutes a la meme echelle. Un apercu agrandi (apercu_*.png) est ecrit dans le dossier
+ * parent : a verifier puis supprimer. Planches actuelles :
+ *   java outils/PrepIcones.java maquettes/higgsfield/filet.png src/main/resources/pack/objets 32 filet_vide filet_plein
+ *   java outils/PrepIcones.java maquettes/higgsfield/bestiaire-icones.png src/main/resources/pack/objets 32 inconnu bestiaire medaille
  */
-public class PrepFilet {
+public class PrepIcones {
 
     public static void main(String[] a) throws Exception {
         BufferedImage src = ImageIO.read(new File(a[0]));
         File dst = new File(a[1]);
-        int taille = a.length > 2 ? Integer.parseInt(a[2]) : 16;
+        int taille = Integer.parseInt(a[2]);
+        String[] noms = java.util.Arrays.copyOfRange(a, 3, a.length);
         dst.mkdirs();
-        int moitie = src.getWidth() / 2;
-        String[] noms = {"filet_vide", "filet_plein"};
-        BufferedImage[] icones = new BufferedImage[2];
-        int[][] cadres = new int[2][];
+        int n = noms.length, part = src.getWidth() / n;
+        BufferedImage[] icones = new BufferedImage[n];
+        int[][] cadres = new int[n][];
         int cote = 0;
-        for (int i = 0; i < 2; i++) {
-            icones[i] = detourer(src.getSubimage(i * moitie, 0, moitie, src.getHeight()));
+        for (int i = 0; i < n; i++) {
+            icones[i] = detourer(src.getSubimage(i * part, 0, part, src.getHeight()));
             cadres[i] = cadre(icones[i]);
             cote = Math.max(cote, Math.max(cadres[i][2] - cadres[i][0], cadres[i][3] - cadres[i][1]) + 1);
         }
-        // Meme echelle pour les deux icones (le filet ne change pas de taille quand il se remplit)
-        for (int i = 0; i < 2; i++) {
+        // Meme echelle pour toutes (le filet ne change pas de taille quand il se remplit)
+        for (int i = 0; i < n; i++) {
             BufferedImage icone = reduire(icones[i], cadres[i], cote, taille);
             ImageIO.write(icone, "png", new File(dst, noms[i] + ".png"));
             ImageIO.write(agrandir(icone, 256 / taille), "png", new File(dst.getParentFile(), "apercu_" + noms[i] + ".png"));

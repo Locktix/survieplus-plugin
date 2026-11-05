@@ -51,8 +51,6 @@ capture:
   active: true
   # nombre de captures avant que le filet se dechire (0 = inusable). Ne change pas les filets deja fabriques.
   utilisations: 10
-  # un monstre ne se capture qu'en dessous de ce pourcentage de sa vie (100 = toujours ; les animaux : toujours)
-  monstres-vie-max: 50
   # les villageois peuvent-ils etre captures ?
   villageois: true
   # mobs impossibles a capturer (en plus du Wither et de l'Ender Dragon)
@@ -60,6 +58,20 @@ capture:
     - WARDEN
     - ELDER_GUARDIAN
     - GIANT
+
+# Bestiaire (/bestiaire, ou le livre dans /sp) : chaque espece attrapee au filet s'y ajoute, une fois.
+bestiaire:
+  active: true
+  # XP de Chasseur pour chaque nouvelle espece (0 = aucune)
+  xp-chasseur: 30
+  # medaille du naturaliste quand toutes les especes sont trouvees
+  medaille: true
+  # nombre d'especes (ou "tout") : objets donnes, meme format que les recompenses des metiers
+  paliers:
+    10: ["NAME_TAG 2", "LEAD 2"]
+    25: ["SADDLE", "GOLDEN_CARROT 16"]
+    50: ["ENCHANTED_BOOK looting:3"]
+    tout: ["NETHER_STAR"]
 
 # Sommeil partage : pourcentage des joueurs qui doivent dormir pour passer la nuit
 # (regle la regle de jeu vanilla playersSleepingPercentage ; modifiable dans /sp par les admins)

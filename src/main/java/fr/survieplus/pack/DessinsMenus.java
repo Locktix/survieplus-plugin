@@ -61,6 +61,9 @@ public final class DessinsMenus {
     static final int PAS = 2;
     /** Cases du bas de /metiers : retour, niveau total, barre de progression. */
     public static final int[] METIERS_CASES_BAS = {45, 49, 53};
+    /** Bestiaire : une espece par case sur les 5 premieres lignes, puis page precedente, progression, page suivante. */
+    public static final int BESTIAIRE_PAR_PAGE = 45;
+    public static final int[] BESTIAIRE_CASES_BAS = {45, 49, 53};
 
     /** Hauteur du mot « Inventaire » (position du libelle du jeu) dans un coffre de 6 et de 3 lignes. */
     static final int INVENTAIRE_Y_METIERS = 128, INVENTAIRE_Y_SP = 74;
@@ -76,7 +79,7 @@ public final class DessinsMenus {
             argb(255, 0xD98A14), argb(255, 0x2FA8B8), argb(255, 0xB8A018), argb(255, 0x1F7F8A), argb(255, 0xB8382A)};
 
     private final PackMenus pack;
-    private PackMenus.Mosaique fondMetiers, fondSp;
+    private PackMenus.Mosaique fondMetiers, fondSp, fondBestiaire;
     /** Finesse des fonds : 3 pixels d'image par pixel du menu. */
     static final int HD = 3;
 
@@ -129,11 +132,14 @@ public final class DessinsMenus {
         paysage.getGraphics().drawImage(sapins, monts.getWidth() + 2 * HD, paysage.getHeight() - sapins.getHeight(), null);
         d.livre("livre_paysage", paysage, 8);
         // Filet de capture (images Higgsfield, preparees par outils/PrepFilet.java)
-        pack.objet("filet_vide", objet("filet_vide"));
-        pack.objet("filet_plein", objet("filet_plein"));
+        // et icones du bestiaire (images Higgsfield, preparees par outils/PrepIcones.java)
+        for (String o : List.of("filet_vide", "filet_plein", "inconnu", "bestiaire", "medaille")) pack.objet(o, objet(o));
         pack.variantes(PackMenus.MODELE_FILET, "minecraft:item/cobweb", java.util.Map.of(
                 PackMenus.FILET_VIDE, "survieplus:item/filet_vide",
                 PackMenus.FILET_PLEIN, "survieplus:item/filet_plein"));
+        pack.variantes(PackMenus.MODELE_MEDAILLE, "minecraft:item/gold_nugget", java.util.Map.of(
+                PackMenus.MEDAILLE, "survieplus:item/medaille"));
+        d.fondBestiaire = pack.mosaique("fond_bestiaire", d.fondBestiaire(), -4, HD);
         pack.texte(PackMenus.TITRE_Y);
         pack.texte(caseY(0) + 4);  // "Options :" de /sp
         // « Inventaire » sur l'etiquette de papier (le jeu ne l'affiche pas dans ces menus)
@@ -349,6 +355,28 @@ public final class DessinsMenus {
         return fond;
     }
 
+    private BufferedImage fondBestiaire() throws IOException {
+        // Page du carnet (Higgsfield, outils/PrepBestiaire.java) sur le haut ; le bois de l'inventaire des metiers dessous
+        BufferedImage fond = hd("fond_metiers");
+        fond.getGraphics().drawImage(hd("fond_bestiaire"), 0, 0, null);
+        // la plume et l'empreinte des coins, posees dans la ligne du bas entre les boutons
+        BufferedImage plume = hd("bestiaire_plume"), patte = hd("bestiaire_patte");
+        coller(fond, plume, 4 + 53 - plume.getWidth() / HD / 2, 4 + 123);
+        coller(fond, patte, 4 + 125 - patte.getWidth() / HD / 2, 4 + 123);
+
+        Dessin d = new Dessin(184, 230);
+        inventaire(d, INVENTAIRE_Y_METIERS, 139, 197);
+        int finTitre = 9 + pack.largeurs().de("Bestiaire") - 2;
+        for (int x = 9; x <= finTitre; x++) d.px(4 + x, 4 + (x > finTitre - 3 ? 14 : 15), ENCRE_PALE);
+        // grille des especes : une case par espece, traits fins a l'encre
+        int lignes = BESTIAIRE_PAR_PAGE / 9;
+        for (int c = 0; c <= 9; c++) d.rect(4 + 7 + 18 * c, 4 + 17, 1, 18 * lignes + 1, ENCRE_PALE);
+        for (int r = 0; r <= lignes; r++) d.rect(4 + 7, 4 + 17 + 18 * r, 18 * 9 + 1, 1, ENCRE_PALE);
+        for (int slot : BESTIAIRE_CASES_BAS) cadreEncre(d, 4 + caseX(slot) - 1, 4 + caseY(slot) - 1, CADRE_FIXE);
+        calque(fond, d, 80);
+        return fond;
+    }
+
     private BufferedImage fondSp(int[] cases) throws IOException {
         // 3 lignes : haut du coffre jusqu'a y = 71, inventaire en dessous (fin a 168)
         BufferedImage fond = hd("fond_sp");
@@ -438,6 +466,17 @@ public final class DessinsMenus {
     /** "0 %" a "99 %" (jamais 100 % avant le niveau suivant). */
     static String pourcent(long actuel, long requis) {
         return Math.min(99, Math.max(0, actuel * 100 / Math.max(1, requis))) + " %";
+    }
+
+    /** Titre du bestiaire : le fond, le nombre d'especes capturees (et la page s'il y en a plusieurs). */
+    public Component titreBestiaire(int captures, int total, int page, int pages) {
+        Toile t = new Toile(pack);
+        t.mosaique(fondBestiaire, -4);
+        t.texte("Bestiaire", 9, PackMenus.TITRE_Y, TEXTE_TITRE);
+        String droite = captures + " / " + total + (pages > 1 ? "   p. " + (page + 1) + "/" + pages : "");
+        t.texteDroite(droite, 166, PackMenus.TITRE_Y, captures >= total ? TEXTE_ROUGE : TEXTE_PALE);
+        t.texte("Inventaire", 8, INVENTAIRE_Y_METIERS, TEXTE_ENCRE);
+        return t.fin();
     }
 
     /** Titre de /sp : le fond, et sous chaque option (ligne du milieu) une coche, une croix ou un cadenas. */

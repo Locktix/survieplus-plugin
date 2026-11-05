@@ -41,8 +41,9 @@ final class Menu implements InventoryHolder {
     private static final int SLOT_SOMMEIL = 26;
     private static final int SLOT_METIERS = 4;
     private static final int SLOT_GUIDE = 8;
-    /** Cases occupees (trouees dans le fond du menu dessine). */
-    static final int[] CASES = {SLOT_METIERS, SLOT_GUIDE, 10, 11, 12, 13, 14, 15, 16, SLOT_SOMMEIL};
+    private static final int SLOT_BESTIAIRE = 18;
+    /** Cases occupees (encadrees dans le fond du menu dessine). */
+    static final int[] CASES = {SLOT_METIERS, SLOT_GUIDE, 10, 11, 12, 13, 14, 15, 16, SLOT_BESTIAIRE, SLOT_SOMMEIL};
 
     private final SurviePlus plugin;
     private final Player joueur;
@@ -87,6 +88,7 @@ final class Menu implements InventoryHolder {
         EMPLACEMENTS.forEach((slot, m) -> inv.setItem(slot, icone(m)));
         inv.setItem(SLOT_SOMMEIL, iconeSommeil());
         inv.setItem(SLOT_METIERS, iconeMetiers());
+        inv.setItem(SLOT_BESTIAIRE, iconeBestiaire());
         inv.setItem(SLOT_GUIDE, objet(Material.WRITTEN_BOOK, texte("Guide du serveur", NamedTextColor.YELLOW), List.of(
                 texte("Tout ce que le serveur ajoute", NamedTextColor.GRAY),
                 texte("Clic : lire   ·   Maj + clic : recevoir le livre", NamedTextColor.DARK_GRAY)), false));
@@ -99,6 +101,25 @@ final class Menu implements InventoryHolder {
         return objet(Material.ENCHANTED_BOOK, texte("Métiers", NamedTextColor.GOLD), List.of(
                 texte("Bûcheron, mineur, fermier, pêcheur, chasseur", NamedTextColor.GRAY),
                 texte("Clique pour voir ta progression", NamedTextColor.DARK_GRAY)), false);
+    }
+
+    private boolean bestiaireDispo() {
+        return plugin.bestiaire().actif() && joueur.hasPermission(Capture.PERMISSION);
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private ItemStack iconeBestiaire() {
+        if (!bestiaireDispo())
+            return objet(Material.BARRIER, texte("Bestiaire", NamedTextColor.RED),
+                    List.of(texte("Desactive", NamedTextColor.DARK_RED)), false);
+        var especes = plugin.bestiaire().especes();
+        int n = Bestiaire.nombre(plugin.bestiaire().captures(joueur), especes);
+        ItemStack it = objet(Material.BOOK, texte("Bestiaire", NamedTextColor.GOLD), List.of(
+                texte(n + " / " + especes.size() + " espèces attrapées au filet", NamedTextColor.GRAY),
+                texte("Clique pour l'ouvrir", NamedTextColor.DARK_GRAY)), false);
+        if (dessins != null) it.setData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_MODEL,
+                fr.survieplus.pack.PackMenus.BESTIAIRE);
+        return it;
     }
 
     private ItemStack icone(Module m) {
@@ -149,6 +170,10 @@ final class Menu implements InventoryHolder {
             joueur.closeInventory();
             if (maj) plugin.guide().donner(joueur);
             else plugin.guide().ouvrir(joueur);
+            return;
+        }
+        if (slot == SLOT_BESTIAIRE) {
+            if (bestiaireDispo()) new MenuBestiaire(plugin, joueur, 0).ouvrir();
             return;
         }
         if (slot == SLOT_METIERS) {

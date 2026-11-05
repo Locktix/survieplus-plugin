@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class PackMenusTest {
 
-    private static final int[] CASES_SP = {4, 8, 10, 11, 12, 13, 14, 15, 16, 26};
+    private static final int[] CASES_SP = {4, 8, 10, 11, 12, 13, 14, 15, 16, 18, 26};
     private static final Path MC = Path.of("maquettes", "mc");
     private static DessinsMenus dessins;
     private static Map<String, byte[]> zip;
@@ -81,14 +82,31 @@ class PackMenusTest {
         assertEquals(new java.util.ArrayList<>(new TreeMap<>(cas).keySet()), new java.util.ArrayList<>(cas.keySet()));
         assertEquals(Map.of(PackMenus.FILET_VIDE, "survieplus:item/filet_vide",
                 PackMenus.FILET_PLEIN, "survieplus:item/filet_plein"), cas);
-        for (String nom : List.of("filet_vide", "filet_plein")) {
+        for (String nom : List.of("filet_vide", "filet_plein", "inconnu", "bestiaire", "medaille")) {
             assertEquals("survieplus:item/" + nom, json("assets/survieplus/models/item/" + nom + ".json")
                     .getAsJsonObject("textures").get("layer0").getAsString());
+            // definition survieplus:<nom>, pour les icones des menus (item_model)
+            assertEquals("survieplus:item/" + nom, json("assets/survieplus/items/" + nom + ".json")
+                    .getAsJsonObject("model").get("model").getAsString());
             BufferedImage img = javax.imageio.ImageIO.read(new ByteArrayInputStream(
                     zip.get("assets/survieplus/textures/item/" + nom + ".png")));
             assertEquals(32, img.getWidth(), nom);
             assertEquals(32, img.getHeight(), nom);
         }
+        // Medaille : une vraie pepite d'or garde son modele
+        JsonObject pepite = json("assets/minecraft/items/gold_nugget.json").getAsJsonObject("model");
+        assertEquals("minecraft:item/gold_nugget", pepite.getAsJsonObject("fallback").get("model").getAsString());
+        assertEquals(PackMenus.MEDAILLE, pepite.getAsJsonArray("cases").get(0).getAsJsonObject().get("when").getAsString());
+    }
+
+    @Test
+    void bestiaire_titreEtFond() {
+        // le fond est une mosaique de carreaux : au moins le premier existe
+        assertTrue(zip.keySet().stream().anyMatch(k -> k.startsWith("assets/survieplus/textures/menu/fond_bestiaire_")));
+        Component titre = dessins.titreBestiaire(12, 74, 0, 2);
+        String texte = PlainTextComponentSerializer.plainText().serialize(titre);
+        assertTrue(texte.contains("Bestiaire"), texte);
+        assertTrue(texte.contains("12 / 74"), texte);
     }
 
     @Test
@@ -184,7 +202,21 @@ class PackMenusTest {
         Map<Integer, String> objets = new HashMap<>(Map.of(4, "enchanted_book", 8, "written_book", 10, "iron_axe", 11, "oak_sapling",
                 12, "oak_leaves", 13, "iron_pickaxe", 14, "wheat", 15, "chest", 16, "hopper"));
         objets.put(26, "red_bed");
+        objets.put(18, "pack:bestiaire");
         enregistrer(rendre(dessins.titreSp(etats), 168, objets, 85, 143), "sp.png");
+    }
+
+    @Test
+    void apercu_bestiaire() throws IOException {
+        String[] captures = {"axolotl", "bee", "cat", "chicken", "cow", "fox", "pig", "sheep", "wolf"};
+        Map<Integer, String> objets = new HashMap<>();
+        for (int i = 0; i < DessinsMenus.BESTIAIRE_PAR_PAGE; i++)
+            objets.put(i, i < captures.length ? captures[i] + "_spawn_egg" : i % 4 == 1 ? captures[i % 9] + "_spawn_egg" : "pack:inconnu");
+        objets.put(30, "zombie_spawn_egg");
+        objets.put(31, "skeleton_spawn_egg");
+        objets.put(53, "arrow");
+        objets.put(49, "pack:bestiaire");
+        enregistrer(rendre(dessins.titreBestiaire(19, 74, 0, 2), 222, objets, 139, 197), "bestiaire.png");
     }
 
     // ───────────── Livre (guide) ─────────────
@@ -411,9 +443,17 @@ class PackMenusTest {
         // Objets, dessines apres le titre (comme en jeu)
         for (Map.Entry<Integer, String> e : objets.entrySet()) {
             int ox = (marge + DessinsMenus.caseX(e.getKey())) * E, oy = (marge + DessinsMenus.caseY(e.getKey())) * E;
-            Path icone = MC.resolve(e.getValue() + ".png");
+            // "pack:nom" = icone du pack (32 x 32, ramenee a 16 x 16), sinon texture du jeu dans maquettes/mc
+            boolean dePack = e.getValue().startsWith("pack:");
+            Path icone = dePack ? Path.of("src/main/resources/pack/objets", e.getValue().substring(5) + ".png")
+                    : MC.resolve(e.getValue() + ".png");
             if (Files.exists(icone)) {
                 BufferedImage ic = ImageIO.read(icone.toFile());
+                if (ic.getWidth() == 32) {
+                    BufferedImage seize = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+                    for (int j = 0; j < 16; j++) for (int i = 0; i < 16; i++) seize.setRGB(i, j, ic.getRGB(2 * i, 2 * j));
+                    ic = seize;
+                }
                 // le feuillage est gris dans le jeu, teinte au rendu
                 coller(out, ic, 0, 0, 16, 16, ox, oy, e.getValue().endsWith("_leaves") ? 0x48B518 : 0xFFFFFF, E);
             } else {

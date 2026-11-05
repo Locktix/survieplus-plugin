@@ -27,6 +27,11 @@ public final class SurviePlus extends JavaPlugin {
     private Guide guide;
     private Packs packs;
     private Capture capture;
+    private Bestiaire bestiaire;
+
+    Bestiaire bestiaire() {
+        return bestiaire;
+    }
 
     Packs packs() {
         return packs;
@@ -59,8 +64,11 @@ public final class SurviePlus extends JavaPlugin {
         pm.registerEvents(new Recolte(this), this);
         pm.registerEvents(new Tombes(this), this);
         pm.registerEvents(new Tri(this), this);
+        bestiaire = new Bestiaire(this);
         capture = new Capture(this);
         pm.registerEvents(capture, this);
+        pm.registerEvents(new MenuBestiaire.Ecouteur(), this);
+        getLogger().info("Bestiaire : " + bestiaire.especes().size() + " especes a capturer");
         pm.registerEvents(new Menu.Ecouteur(), this);
         Sommeil.appliquer(this);
         packs = new Packs(this, Menu.CASES);
@@ -70,6 +78,7 @@ public final class SurviePlus extends JavaPlugin {
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             e.registrar().register("survieplus", "Ouvre le menu SurviePlus", List.of("sp"), new Commande());
             e.registrar().register("metiers", "Progression des metiers", List.of("metier"), new CommandeMetiers());
+            e.registrar().register("bestiaire", "Especes capturees au filet", List.of(), new CommandeBestiaire());
         });
     }
 
@@ -143,6 +152,22 @@ public final class SurviePlus extends JavaPlugin {
             if (args.length == 3 && args[0].equalsIgnoreCase("donner"))
                 return java.util.Arrays.stream(Metier.values()).map(m -> m.cle).toList();
             return List.of();
+        }
+    }
+
+    /** /bestiaire : ouvre le bestiaire. */
+    private final class CommandeBestiaire implements BasicCommand {
+        @Override
+        public void execute(CommandSourceStack src, String[] args) {
+            if (!(src.getExecutor() instanceof Player p)) {
+                src.getSender().sendMessage("Cette commande ouvre un menu : elle est reservee aux joueurs.");
+                return;
+            }
+            if (!bestiaire.actif() || !p.hasPermission(Capture.PERMISSION)) {
+                message(p, "Le bestiaire est désactivé.", NamedTextColor.RED);
+                return;
+            }
+            new MenuBestiaire(SurviePlus.this, p, 0).ouvrir();
         }
     }
 

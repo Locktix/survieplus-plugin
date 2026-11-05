@@ -19,7 +19,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Boss;
-import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntitySnapshot;
 import org.bukkit.entity.EntityType;
@@ -114,8 +113,7 @@ final class Capture implements Listener {
         it.unsetData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE);
         it.setData(DataComponentTypes.LORE, ItemLore.lore(List.of(
                 ligne("Clic droit sur un animal ou un monstre", NamedTextColor.GRAY),
-                ligne("pour l'attraper.", NamedTextColor.GRAY),
-                ligne("Les monstres doivent être affaiblis.", NamedTextColor.DARK_GRAY))));
+                ligne("pour l'attraper.", NamedTextColor.GRAY))));
     }
 
     private void remplir(ItemStack it, Mob mob, String donnees) {
@@ -169,11 +167,6 @@ final class Capture implements Listener {
     }
 
     // ------------------------------------------------------------ regles (testees dans CaptureTest)
-
-    /** Un monstre ne se capture qu'en dessous de ce pourcentage de sa vie (100 = toujours). */
-    static boolean assezAffaibli(double vie, double vieMax, int pourcentMax) {
-        return pourcentMax >= 100 || vieMax <= 0 || vie * 100 <= vieMax * pourcentMax;
-    }
 
     /** Usure du filet apres une capture, ou -1 s'il est deja hors d'usage. max <= 0 : filet inusable. */
     static int usureApresCapture(int usure, int max) {
@@ -241,6 +234,21 @@ final class Capture implements Listener {
         ou.getWorld().playSound(ou, Sound.ENTITY_ITEM_PICKUP, 1f, 0.6f);
         info(p, Component.text("Attrapé : ", NamedTextColor.GREEN)
                 .append(Component.translatable(mob.getType().translationKey(), NamedTextColor.YELLOW)));
+        captureRecente.put(p.getUniqueId(), Bukkit.getCurrentTick());
+        plugin.bestiaire().enregistrer(p, mob.getType());
+    }
+
+    /**
+     * Tick de la derniere capture de chaque joueur. Un clic droit sur un mob envoie aussi, juste apres,
+     * un "clic avec l'objet en main" : vu comme un clic dans le vide ou sur le bloc derriere le mob, il ne doit
+     * ni relacher le mob qu'on vient d'attraper, ni afficher "Vise un bloc..." par-dessus "Attrape : ...".
+     */
+    private final java.util.Map<java.util.UUID, Integer> captureRecente = new java.util.HashMap<>();
+
+    /** Vrai si ce joueur vient d'attraper un mob (meme clic). */
+    private boolean vientDeCapturer(Player p) {
+        Integer tick = captureRecente.remove(p.getUniqueId());
+        return tick != null && Bukkit.getCurrentTick() - tick <= 1;
     }
 
     /** Raison pour laquelle ce mob ne peut pas etre capture, ou null. */
@@ -262,9 +270,6 @@ final class Capture implements Listener {
             if (maitre != null && !maitre.getUniqueId().equals(p.getUniqueId()))
                 return "Cet animal appartient à " + (maitre.getName() != null ? maitre.getName() : "quelqu'un d'autre") + ".";
         }
-        int seuil = cfg.getInt("capture.monstres-vie-max", 50);
-        if (mob instanceof Enemy && !assezAffaibli(mob.getHealth(), vieMax(mob), seuil))
-            return "Affaiblis-le d'abord : moins de " + seuil + " % de sa vie.";
         return null;
     }
 
@@ -278,6 +283,13 @@ final class Capture implements Listener {
         String donnees = contenu(it);
         if (donnees == null) return;
         Player p = e.getPlayer();
+        // Meme clic que la capture : Paper cherche alors le bloc vise (le mob n'est plus la) et le signale comme
+        // un clic sur l'herbe ou le mur derriere : on l'ignore, sinon le mob ressortirait aussitot
+        if (vientDeCapturer(p)) {
+            e.setUseInteractedBlock(Event.Result.DENY);
+            e.setUseItemInHand(Event.Result.DENY);
+            return;
+        }
         if (e.getAction() == Action.RIGHT_CLICK_AIR) {
             info(p, "Vise un bloc pour relâcher le mob.", NamedTextColor.YELLOW);
             return;
@@ -336,11 +348,19 @@ final class Capture implements Listener {
 
     // ------------------------------------------------------------ garde-fous
 
-    /** Le filet ne sert pas d'ingredient (fusee, etoile de feu d'artifice) : on perdrait le mob qu'il contient. */
+    /**
+     * Objet du plugin fait sur l'etoile de feu d'artifice (filet, medaille du naturaliste) : il ne doit pas servir
+     * d'ingredient (fusee, etoile teinte), on perdrait le mob du filet ou la medaille.
+     */
+    private boolean special(ItemStack it) {
+        return it != null && it.getType() == BASE && it.hasItemMeta() && it.getItemMeta().getPersistentDataContainer()
+                .getKeys().stream().anyMatch(k -> k.getNamespace().equals(cleFilet.getNamespace()));
+    }
+
     @EventHandler
     public void onPreparer(PrepareItemCraftEvent e) {
         for (ItemStack it : e.getInventory().getMatrix())
-            if (estFilet(it)) {
+            if (special(it)) {
                 e.getInventory().setResult(null);
                 return;
             }
@@ -353,7 +373,7 @@ final class Capture implements Listener {
     public void onFabricateur(CrafterCraftEvent e) {
         var inv = ((org.bukkit.block.Crafter) e.getBlock().getState(false)).getInventory();
         for (ItemStack it : inv.getContents())
-            if (estFilet(it)) {
+            if (special(it)) {
                 e.setCancelled(true);
                 return;
             }
