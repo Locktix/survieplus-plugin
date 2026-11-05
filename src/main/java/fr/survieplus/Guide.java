@@ -9,6 +9,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.object.ObjectContents;
+import fr.survieplus.pack.DessinsMenus;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -49,6 +50,8 @@ final class Guide implements Listener {
 
     private final SurviePlus plugin;
     private final NamespacedKey cleRecu;
+    /** Dessins du pack pour le livre en cours de fabrication (null : livre sans images). */
+    private DessinsMenus dessins;
 
     Guide(SurviePlus plugin) {
         this.plugin = plugin;
@@ -81,6 +84,8 @@ final class Guide implements Listener {
     }
 
     private ItemStack livre(Player p, boolean progression) {
+        // Images du pack seulement pour le livre ouvert a l'ecran (le livre donne peut etre relu sans le pack)
+        dessins = progression ? plugin.packs().pour(p) : null;
         ItemStack it = new ItemStack(Material.WRITTEN_BOOK);
         it.editMeta(BookMeta.class, b -> {
             b.title(Component.text("Guide Survie+"));
@@ -140,7 +145,17 @@ final class Guide implements Listener {
 
     /** Titre de page : icone + texte en gras ; un clic ramene au sommaire. */
     private static Component titre(Component icone, String texte, TextColor couleur) {
+        return titre(Component.empty(), icone, texte, couleur);
+    }
+
+    /** Titre d'une page de metier, avec le decor du metier cale a droite (si le joueur a le pack). */
+    private Component titre(Metier m, String texte, TextColor couleur) {
+        return titre(dessins == null ? Component.empty() : dessins.decorLivre(m.ordinal()), objet(m.icone), texte, couleur);
+    }
+
+    private static Component titre(Component decor, Component icone, String texte, TextColor couleur) {
         return Component.text()
+                .append(decor)
                 .append(icone).append(Component.text(" "))
                 .append(gras(texte, couleur))
                 .clickEvent(ClickEvent.changePage(PAGE_SOMMAIRE))
@@ -200,7 +215,9 @@ final class Guide implements Listener {
         return page()
                 .append(Component.text("\n"))
                 .append(icones.build())
-                .append(Component.text("\n\n\n"))
+                .append(Component.text("\n\n"))
+                .append(dessins == null ? Component.empty() : dessins.paysageLivre())
+                .append(Component.text(dessins == null ? "\n" : "\n\n"))
                 .append(gras("     SURVIE+", TITRE))
                 .append(Component.text("\n"))
                 .append(Component.text("    le guide du serveur", DISCRET, TextDecoration.ITALIC))
@@ -313,7 +330,7 @@ final class Guide implements Listener {
     private Component pageMetier(Player p, Metier m, boolean progression) {
         Metiers mt = plugin.metiers();
         NamedTextColor c = COULEURS.get(m);
-        var page = page().append(titre(objet(m.icone), m.nom, c))
+        var page = page().append(titre(m, m.nom, c))
                 .append(gras("XP", c)).append(t(" : " + m.gain + "\n\n"));
         String[] effets = {"haste", "luck"};
         for (int i = 1; i <= 2; i++) {
@@ -337,7 +354,7 @@ final class Guide implements Listener {
         var paliers = plugin.metiers().recompenses.paliers(m);
         if (paliers.isEmpty()) return null;
         NamedTextColor c = COULEURS.get(m);
-        var page = page().append(titre(objet(m.icone), "Cadeaux", c))
+        var page = page().append(titre(m, "Cadeaux", c))
                 .append(Component.text("Survole un cadeau pour le voir en détail.\n\n", DISCRET, TextDecoration.ITALIC));
         for (var en : paliers.entrySet()) {
             page.append(gras("Niv. " + en.getKey(), c)).append(Component.text("\n"));

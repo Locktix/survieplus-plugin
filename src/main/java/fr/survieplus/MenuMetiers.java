@@ -57,7 +57,7 @@ final class MenuMetiers implements InventoryHolder {
         List<DessinsMenus.LigneMetier> lignes = new ArrayList<>();
         for (Metier m : Metier.values()) {
             Metiers.Progression pr = metiers.progression(joueur.getUniqueId(), m);
-            lignes.add(new DessinsMenus.LigneMetier(m.nom, pr.niveau(), pr.actuel(), pr.requis(), pr.max()));
+            lignes.add(new DessinsMenus.LigneMetier(m.nom, pr.niveau(), metiers.niveauMax(), pr.actuel(), pr.requis(), pr.max()));
         }
         return dessins.titreMetiers(metiers.niveauTotal(joueur.getUniqueId()), lignes);
     }

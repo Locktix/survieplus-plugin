@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SurviePlus : pistes de menus (Higgsfield)</title>
+<style>
+  body { background:#1d1a17; color:#e8dcc4; font:15px/1.5 system-ui, sans-serif; margin:24px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:17px; margin:32px 0 8px; border-bottom:1px solid #4a3f33; padding-bottom:4px; }
+  p.note { color:#b9ab92; max-width:900px; margin:0 0 16px; }
+  .rang { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; background:#2a2520; padding:10px; border:1px solid #4a3f33; }
+  figure img { display:block; width:380px; image-rendering:pixelated; }
+  figure.actuel img { width:380px; }
+  figcaption { margin-top:8px; max-width:380px; }
+  figcaption b { color:#f2c46b; }
+  figcaption span { display:block; color:#a8987c; font-size:13px; }
+</style>
+</head>
+<body>
+<h1>SurviePlus : pistes pour les menus, générées avec Higgsfield</h1>
+<p class="note">En haut, le résultat dans le menu. En dessous, les planches d'idées qui ont servi à choisir. Les objets et le texte en jeu restent ceux du client.</p>
+
+<h2>Résultat : les images Higgsfield dans le menu (rendu du plugin)</h2>
+<div class="rang">
+  <figure><img src="resultat-metiers.png">
+    <figcaption><b>/metiers · Carte illustrée</b><span>Fond, boussole et décors générés par Higgsfield, posés au pixel près ; le texte, les chemins et les cases sont ajoutés par le plugin. Le chemin va maintenant du niveau 0 au niveau 50 ; le % à droite reste celui du niveau en cours.</span></figcaption></figure>
+  <figure><img src="resultat-sp.png">
+    <figcaption><b>/sp · Coches à l'encre</b><span>Coche verte = actif, croix rouge = coupé, cadenas = pas encore débloqué. Le lit (sommeil partagé) passe en bas à droite. Les carrés violets remplacent le coffre et le lit, que l'aperçu ne sait pas dessiner.</span></figcaption></figure>
+</div>
+
+<h2>/metiers</h2>
+<div class="rang">
+  <figure><img src="metiers-A-carte.png">
+    <figcaption><b>A · Carte illustrée</b><span>Même idée, en plus vivant : un petit décor par métier (arbre, entrée de mine, champ, mare, forêt), des jalons sur le chemin, une rose des vents. En jeu, les chiffres 10/20/30 ne tiendront pas dans une ligne de 18 px : il resterait des points.</span></figcaption></figure>
+  <figure><img src="metiers-B-carnet.png">
+    <figcaption><b>B · Carnet d'aventurier</b><span>Livre ouvert en cuir cousu, barres en petits carrés, marque-page rouge. Le plus lisible des trois.</span></figcaption></figure>
+  <figure><img src="metiers-C-tableau.png">
+    <figcaption><b>C · Tableau de la guilde</b><span>Une note épinglée par métier, barre en corde, sceau de cire quand le métier est fini.</span></figcaption></figure>
+</div>
+
+<h2>/sp</h2>
+<div class="rang">
+  <figure><img src="sp-A-leviers.png">
+    <figcaption><b>A · Leviers</b><span>Un levier levé ou baissé sous chaque option. Les noms sous les cases sont inventés par l'IA et ne rentreront pas en jeu (une case fait 18 px) : on garderait les noms au survol.</span></figcaption></figure>
+  <figure><img src="sp-B-coches.png">
+    <figcaption><b>B · Coches à l'encre</b><span>Une coche verte ou une croix rouge sous chaque option, sur la carte déchirée. Reste dans le style actuel.</span></figcaption></figure>
+</div>
+</body>
+</html>

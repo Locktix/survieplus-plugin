@@ -3,7 +3,6 @@ package fr.survieplus;
 import fr.survieplus.pack.DessinsMenus;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -39,7 +38,7 @@ final class Menu implements InventoryHolder {
             15, Module.TOMBE,
             16, Module.TRI);
 
-    private static final int SLOT_SOMMEIL = 22;
+    private static final int SLOT_SOMMEIL = 26;
     private static final int SLOT_METIERS = 4;
     private static final int SLOT_GUIDE = 8;
     /** Cases occupees (trouees dans le fond du menu dessine). */
@@ -54,20 +53,20 @@ final class Menu implements InventoryHolder {
         this.plugin = plugin;
         this.joueur = joueur;
         this.dessins = plugin.packs().pour(joueur);
-        Component titre = dessins != null ? dessins.titreSp(cadres())
+        Component titre = dessins != null ? dessins.titreSp(etats())
                 : Component.text("SurviePlus", NamedTextColor.DARK_GREEN);
         this.inv = Bukkit.createInventory(this, 27, titre);
     }
 
-    /** Couleur du cadre de chaque option dans le menu dessine : vert = actif, rouge = coupe, gris = indisponible. */
-    private Map<Integer, TextColor> cadres() {
-        Map<Integer, TextColor> cadres = new HashMap<>();
+    /** Etat de chaque option dans le menu dessine : coche = actif, croix = coupe, cadenas = indisponible. */
+    private Map<Integer, DessinsMenus.Etat> etats() {
+        Map<Integer, DessinsMenus.Etat> etats = new HashMap<>();
         EMPLACEMENTS.forEach((slot, m) -> {
             boolean dispo = plugin.activeServeur(m) && joueur.hasPermission(m.permission) && plugin.debloque(joueur, m);
-            cadres.put(slot, !dispo ? DessinsMenus.CADRE_BLOQUE
-                    : plugin.choixJoueur(joueur, m) ? DessinsMenus.CADRE_ON : DessinsMenus.CADRE_OFF);
+            etats.put(slot, !dispo ? DessinsMenus.Etat.BLOQUE
+                    : plugin.choixJoueur(joueur, m) ? DessinsMenus.Etat.ACTIF : DessinsMenus.Etat.COUPE);
         });
-        return cadres;
+        return etats;
     }
 
     void ouvrir() {
@@ -170,7 +169,7 @@ final class Menu implements InventoryHolder {
         plugin.basculer(joueur, m);
         boolean on = plugin.choixJoueur(joueur, m);
         joueur.playSound(joueur.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, on ? 1.2f : 0.8f);
-        // Menu dessine : le cadre de couleur fait partie du titre, on rouvre le menu pour le mettre a jour
+        // Menu dessine : la coche ou la croix fait partie du titre, on rouvre le menu pour le mettre a jour
         if (dessins != null) new Menu(plugin, joueur).ouvrir();
         else inv.setItem(slot, icone(m));
     }

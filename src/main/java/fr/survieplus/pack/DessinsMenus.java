@@ -4,7 +4,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 
 import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -42,13 +44,16 @@ public final class DessinsMenus {
     private static final int CASE_SOMBRE = argb(255, 0x100903);
     private static final int CASE_CLAIR = argb(255, 0x6B4A2A);
 
+    // Marques de /sp
+    private static final int COCHE = argb(255, 0x3D7A2A), CROIX_SP = argb(255, 0xA8321E), CADENAS = argb(255, 0x9C8A6E);
+
     public static final TextColor TEXTE_ENCRE = TextColor.color(0x3F2A14);
     public static final TextColor TEXTE_PALE = TextColor.color(0x7A5A3A);
     public static final TextColor TEXTE_TITRE = TextColor.color(0x4A3018);
     public static final TextColor TEXTE_ROUGE = TextColor.color(0x9A2A1A);
-    public static final TextColor CADRE_ON = TextColor.color(0x3D7A2A);
-    public static final TextColor CADRE_OFF = TextColor.color(0xA8321E);
-    public static final TextColor CADRE_BLOQUE = TextColor.color(0x9C8A6E);
+
+    /** Etat d'une option de /sp : une coche verte, une croix rouge ou un cadenas sous la case. */
+    public enum Etat { ACTIF, COUPE, BLOQUE }
 
     // /metiers : coffre de 6 lignes (222 px de haut)
     static final int CHEMIN_X0 = 30, CHEMIN_X1 = 160;
@@ -59,12 +64,21 @@ public final class DessinsMenus {
 
     /** Hauteur du mot « Inventaire » (position du libelle du jeu) dans un coffre de 6 et de 3 lignes. */
     static final int INVENTAIRE_Y_METIERS = 128, INVENTAIRE_Y_SP = 74;
+    /** Zone du petit decor de chaque metier, entre le niveau et le pourcentage (au-dessus du chemin). */
+    static final int DECOR_X0 = 116, DECOR_X1 = 142;
+    /** Jalons du chemin : tous les cinquiemes du niveau max (tous les 10 niveaux pour 50). */
+    static final int JALONS = 5;
+    /** Hauteur des marques sous les options de /sp (ligne du bas du coffre). */
+    static final int MARQUES_Y = 56;
 
     /** Couleurs des chemins (le trait sous l'encre), dans l'ordre des metiers. */
     private static final int[] COULEURS_CHEMIN = {
             argb(255, 0xD98A14), argb(255, 0x2FA8B8), argb(255, 0xB8A018), argb(255, 0x1F7F8A), argb(255, 0xB8382A)};
 
     private final PackMenus pack;
+    private PackMenus.Mosaique fondMetiers, fondSp;
+    /** Finesse des fonds : 3 pixels d'image par pixel du menu. */
+    static final int HD = 3;
 
     private DessinsMenus(PackMenus pack) {
         this.pack = pack;
@@ -94,18 +108,28 @@ public final class DessinsMenus {
         PackMenus pack = new PackMenus(Largeurs.charger());
         DessinsMenus d = new DessinsMenus(pack);
 
-        pack.image("fond_metiers", d.fondMetiers(), -4);
-        pack.image("fond_sp", d.fondSp(casesSp), -4);
-        for (int ligne = 0; ligne < 3; ligne++) pack.image("cadre", cadreEncre(), caseY(ligne * 9) - 2);
+        d.fondMetiers = pack.mosaique("fond_metiers", d.fondMetiers(), -4, HD);
+        d.fondSp = pack.mosaique("fond_sp", d.fondSp(casesSp), -4, HD);
+        pack.image("coche", marque(Etat.ACTIF), MARQUES_Y);
+        pack.image("croix", marque(Etat.COUPE), MARQUES_Y);
+        pack.image("cadenas", marque(Etat.BLOQUE), MARQUES_Y);
         for (int n = 0; n < 5; n++) {
             int haut = ligneY(n) + 12 - 4;
             for (int k = 0; k <= (CHEMIN_X1 - CHEMIN_X0) / PAS; k++) pack.image("chemin_" + n + "_" + k, chemin(n, k * PAS, false), haut);
             pack.image("chemin_" + n + "_fini", chemin(n, CHEMIN_X1 - CHEMIN_X0, true), haut);
             pack.texte(ligneY(n));
         }
+        // Le guide : fond des livres, decor de chaque metier a droite du titre de sa page, paysage sur la couverture
+        pack.texture("gui/book.png", hd("livre"));
+        for (int n = 0; n < 5; n++) d.livre("livre_decor_" + n, hd("decor_" + n), 10);
+        BufferedImage monts = hd("bas_montagnes"), sapins = hd("bas_sapins");
+        BufferedImage paysage = new BufferedImage(monts.getWidth() + 2 * HD + sapins.getWidth(),
+                Math.max(monts.getHeight(), sapins.getHeight()), BufferedImage.TYPE_INT_ARGB);
+        paysage.getGraphics().drawImage(monts, 0, paysage.getHeight() - monts.getHeight(), null);
+        paysage.getGraphics().drawImage(sapins, monts.getWidth() + 2 * HD, paysage.getHeight() - sapins.getHeight(), null);
+        d.livre("livre_paysage", paysage, 8);
         pack.texte(PackMenus.TITRE_Y);
         pack.texte(caseY(0) + 4);  // "Options :" de /sp
-        pack.texte(caseY(18) + 4); // legende de /sp
         // « Inventaire » sur l'etiquette de papier (le jeu ne l'affiche pas dans ces menus)
         pack.texte(INVENTAIRE_Y_METIERS);
         pack.texte(INVENTAIRE_Y_SP);
@@ -115,6 +139,43 @@ public final class DessinsMenus {
 
     public PackMenus pack() {
         return pack;
+    }
+
+    // ───────────── Guide (livre) ─────────────
+
+    /** Largeur d'une ligne de page de livre (au-dela, le jeu passe a la ligne). */
+    static final int PAGE_LARGEUR = 114;
+    private final Map<String, PackMenus.Glyphe> livre = new java.util.HashMap<>();
+
+    /**
+     * Image fine pour une ligne de livre, son bas a "bas" pixels sous le haut de la ligne. Sa hauteur est completee
+     * par le haut jusqu'a un multiple de HD.
+     */
+    private void livre(String id, BufferedImage img, int bas) {
+        int h = (img.getHeight() + HD - 1) / HD * HD;
+        BufferedImage c = new BufferedImage(img.getWidth(), h, BufferedImage.TYPE_INT_ARGB);
+        c.getGraphics().drawImage(img, 0, h - img.getHeight(), null);
+        livre.put(id, pack.image(id, c, PackMenus.TITRE_Y + bas - h / HD, HD));
+    }
+
+    /** Image posee en x sur la ligne, sans faire avancer le texte qui suit. */
+    private Component surLigne(PackMenus.Glyphe g, int x) {
+        return Component.text(PackMenus.espace(x) + g.c() + PackMenus.espace(-x - g.avance()),
+                        net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                .font(PackMenus.POLICE).shadowColor(net.kyori.adventure.text.format.ShadowColor.none());
+    }
+
+    /** Le decor du metier n, cale a droite de la ligne (a mettre en tete de la ligne du titre). */
+    public Component decorLivre(int n) {
+        PackMenus.Glyphe g = livre.get("livre_decor_" + n);
+        // le curseur apres l'image (x + avance) doit rester dans la ligne, sinon le jeu passe a la ligne avant l'image
+        return surLigne(g, PAGE_LARGEUR - 1 - g.avance());
+    }
+
+    /** Le paysage de la couverture, centre (a mettre en tete d'une ligne vide). */
+    public Component paysageLivre() {
+        PackMenus.Glyphe g = livre.get("livre_paysage");
+        return surLigne(g, (PAGE_LARGEUR - (g.avance() - 1)) / 2);
     }
 
     // ───────────── Matieres ─────────────
@@ -179,59 +240,110 @@ public final class DessinsMenus {
         d.px(x + 18, y + 3, c);
     }
 
-    /** Cadre blanc (teinte en jeu) : image 20 x 20, le cadre commence en (1, 1). */
-    private static Dessin cadreEncre() {
-        Dessin d = new Dessin(20, 20);
-        cadreEncre(d, 1, 1, argb(255, 0xFFFFFF));
+    /** Marque a l'encre sous une option de /sp (7 x 7) : coche verte, croix rouge ou cadenas. */
+    static Dessin marque(Etat e) {
+        Dessin d = new Dessin(7, 7);
+        switch (e) {
+            case ACTIF -> d.motif(0, 0, new String[]{
+                    "......#", ".....##", "#...##.", "##.##..", ".###...", "..#....", "......."}, new char[]{'#'}, new int[]{COCHE});
+            case COUPE -> d.motif(0, 0, new String[]{
+                    "#.....#", "##...##", ".##.##.", "..###..", ".##.##.", "##...##", "#.....#"}, new char[]{'#'}, new int[]{CROIX_SP});
+            case BLOQUE -> d.motif(1, 0, new String[]{
+                    ".###.", "#...#", "#...#", "#####", "##.##", "##.##", "#####"}, new char[]{'#'}, new int[]{CADENAS});
+        }
         return d;
     }
 
-    private static void roseDesVents(Dessin d, int x, int y) {
-        d.motif(x, y, new String[]{
-                "....#....", "...#N#...", "....#....", ".#..#..#.", "####O####", ".#..#..#.", "....#....", "...#.#...", "....#....",
-        }, new char[]{'#', 'N', 'O'}, new int[]{argb(255, 0x5A3D1E), DRAPEAU, DRAPEAU});
-    }
-
     /**
-     * Bas commun : l'inventaire du joueur dans le bois, et une etiquette de papier sous le mot « Inventaire »
-     * (le jeu l'ecrit en gris fonce, illisible sur le bois). Valeurs en pixels du menu ; l'image commence en (-4, -4).
+     * Bas commun, dessine par-dessus le bois du fond : les cases de l'inventaire du joueur, et une etiquette de papier
+     * sous le mot « Inventaire » (le jeu l'ecrit en gris fonce, illisible sur le bois). Pixels du menu + 4.
      */
-    private static void inventaire(Dessin d, int yBois, int yLabel, int ySlots, int yBarre) {
-        bois(d, 0, yBois + 4, 184, d.h - yBois - 4, 77);
+    private static void inventaire(Dessin d, int yLabel, int ySlots, int yBarre) {
         papier(d, 4 + 4, 4 + yLabel - 2, 58, 12, 78);
         for (int r = 0; r < 3; r++) for (int c = 0; c < 9; c++) caseCreusee(d, 4 + 8 + 18 * c, 4 + ySlots + 18 * r);
         for (int c = 0; c < 9; c++) caseCreusee(d, 4 + 8 + 18 * c, 4 + yBarre);
     }
 
-    // ───────────── Fonds (image qui commence en x = -4, y = -4) ─────────────
+    // ───────────── Fonds (image fine qui commence en x = -4, y = -4) ─────────────
 
-    private Dessin fondMetiers() {
+    /** Image fine du pack (pack/hd/, preparee par outils/PrepHD.java a partir des images Higgsfield). */
+    private static BufferedImage hd(String nom) throws IOException {
+        try (InputStream in = DessinsMenus.class.getResourceAsStream("/pack/hd/" + nom + ".png")) {
+            if (in == null) throw new IOException("pack/hd/" + nom + ".png introuvable dans le plugin");
+            BufferedImage brut = ImageIO.read(in), img = new BufferedImage(brut.getWidth(), brut.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            img.getGraphics().drawImage(brut, 0, 0, null);
+            return img;
+        }
+    }
+
+    /**
+     * Pose le calque (pixels du menu, grossis HD fois) sur le fond fin. Le papier de l'etiquette « Inventaire »
+     * reprend le papier du fond, pris yPapier pixels plus haut (une zone vierge de la carte).
+     */
+    private static void calque(BufferedImage fond, Dessin calque, int yPapier) {
+        BufferedImage vierge = new BufferedImage(fond.getWidth(), fond.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        vierge.getGraphics().drawImage(fond, 0, 0, null);
+        for (int y = 0; y < calque.h; y++)
+            for (int x = 0; x < calque.w; x++) {
+                int c = calque.img.getRGB(x, y);
+                if ((c >>> 24) == 0) continue;
+                for (int j = 0; j < HD; j++)
+                    for (int i = 0; i < HD; i++)
+                        fond.setRGB(x * HD + i, y * HD + j, c == PAPIER ? vierge.getRGB(x * HD + i, (y - yPapier) * HD + j) : c);
+            }
+    }
+
+    /** Colle un dessin fin (fond transparent) ; (x, bas) en pixels du menu + 4. */
+    private static void coller(BufferedImage fond, BufferedImage img, int x, int bas) {
+        int x0 = x * HD, y0 = bas * HD + HD - img.getHeight();
+        for (int y = 0; y < img.getHeight(); y++)
+            for (int i = 0; i < img.getWidth(); i++)
+                if ((img.getRGB(i, y) >>> 24) != 0) fond.setRGB(x0 + i, y0 + y, img.getRGB(i, y));
+    }
+
+    private BufferedImage fondMetiers() throws IOException {
         // 6 lignes : haut du coffre jusqu'a y = 125, inventaire en dessous (fin a 222)
+        BufferedImage fond = hd("fond_metiers");
+        for (int n = 0; n < 5; n++) {
+            BufferedImage decor = hd("decor_" + n);
+            int w = (decor.getWidth() + HD - 1) / HD;
+            if (w > DECOR_X1 - DECOR_X0 + 1 || decor.getHeight() > 13 * HD)
+                throw new IllegalStateException("decor " + n + " trop grand");
+            coller(fond, decor, 4 + DECOR_X0 + (DECOR_X1 - DECOR_X0 + 1 - w) / 2, 4 + ligneY(n) + 10);
+        }
+        // ligne du bas : des montagnes et un bout de foret entre les cases
+        coller(fond, hd("bas_montagnes"), 4 + 30, 4 + 121);
+        coller(fond, hd("bas_sapins"), 4 + 113, 4 + 122);
+
         Dessin d = new Dessin(184, 230);
-        bois(d, 0, 0, 184, 133, 11);
-        papier(d, 6, 6, 172, 123, 12);
-        inventaire(d, 125, INVENTAIRE_Y_METIERS, 139, 197);
-        roseDesVents(d, 4 + 157, 4 + 3);
+        inventaire(d, INVENTAIRE_Y_METIERS, 139, 197);
+        // trait a la plume sous le titre, qui remonte un peu au bout
+        int finTitre = 9 + pack.largeurs().de("Carte des métiers") - 2;
+        for (int x = 9; x <= finTitre; x++) d.px(4 + x, 4 + (x > finTitre - 3 ? 14 : 15), ENCRE_PALE);
         for (int n = 0; n < 5; n++) {
             int yy = 4 + ligneY(n) + 12;
             for (int x = CHEMIN_X0; x <= CHEMIN_X1; x++)
                 if ((x - CHEMIN_X0) % 4 < 2) d.px(4 + x, yy + vague(n, x), ENCRE_PALE);
+            // jalons : un point d'encre tous les cinquiemes du chemin
+            for (int k = 1; k < JALONS; k++) {
+                int x = CHEMIN_X0 + (CHEMIN_X1 - CHEMIN_X0) * k / JALONS;
+                d.rect(4 + x, yy + vague(n, x) - 1, 2, 2, ENCRE);
+            }
         }
         for (int slot : METIERS_CASES_BAS) cadreEncre(d, 4 + caseX(slot) - 1, 4 + caseY(slot) - 1, CADRE_FIXE);
-        return d;
+        calque(fond, d, 80);
+        return fond;
     }
 
-    private Dessin fondSp(int[] cases) {
+    private BufferedImage fondSp(int[] cases) throws IOException {
         // 3 lignes : haut du coffre jusqu'a y = 71, inventaire en dessous (fin a 168)
+        BufferedImage fond = hd("fond_sp");
         Dessin d = new Dessin(184, 176);
-        bois(d, 0, 0, 184, 79, 21);
-        papier(d, 6, 6, 172, 69, 22);
-        inventaire(d, 71, INVENTAIRE_Y_SP, 85, 143);
-        roseDesVents(d, 4 + 157, 4 + 3);
-        // cadres fixes (metiers, guide, sommeil) ; ceux des options sont ajoutes en couleur selon leur etat
-        for (int slot : cases)
-            if (slot < 9 || slot >= 18) cadreEncre(d, 4 + caseX(slot) - 1, 4 + caseY(slot) - 1, CADRE_FIXE);
-        return d;
+        inventaire(d, INVENTAIRE_Y_SP, 85, 143);
+        // toutes les cases dans un cadre a l'encre ; l'etat des options est marque dessous (coche, croix, cadenas)
+        for (int slot : cases) cadreEncre(d, 4 + caseX(slot) - 1, 4 + caseY(slot) - 1, CADRE_FIXE);
+        calque(fond, d, 30);
+        return fond;
     }
 
     /**
@@ -273,12 +385,23 @@ public final class DessinsMenus {
     // ───────────── Titres ─────────────
 
     /** Une ligne de /metiers. */
-    public record LigneMetier(String nom, int niveau, long actuel, long requis, boolean max) {}
+    public record LigneMetier(String nom, int niveau, int niveauMax, long actuel, long requis, boolean max) {}
+
+    /**
+     * Longueur du chemin parcouru (en pixels, multiple de PAS) : tout le chemin va du niveau 0 au niveau max,
+     * les jalons marquent chaque cinquieme ; le pourcentage affiche a droite reste celui du niveau en cours.
+     */
+    static int longueurChemin(LigneMetier l) {
+        int total = CHEMIN_X1 - CHEMIN_X0;
+        double fait = l.niveau() + (double) Math.min(l.actuel(), l.requis()) / Math.max(1, l.requis());
+        int px = (int) (total * Math.max(0, Math.min(1, fait / Math.max(1, l.niveauMax()))));
+        return Math.min(total, px) / PAS * PAS;
+    }
 
     /** Titre de /metiers : le fond, puis pour chaque metier son chemin, son nom, son niveau et son pourcentage. */
     public Component titreMetiers(int niveauTotal, List<LigneMetier> lignes) {
         Toile t = new Toile(pack);
-        t.image(pack.get("fond_metiers", -4), -4);
+        t.mosaique(fondMetiers, -4);
         t.texte("Carte des métiers", 9, PackMenus.TITRE_Y, TEXTE_TITRE);
         t.texteDroite("total " + niveauTotal, 152, PackMenus.TITRE_Y, TEXTE_PALE);
         t.texte("Inventaire", 8, INVENTAIRE_Y_METIERS, TEXTE_ENCRE);
@@ -289,8 +412,7 @@ public final class DessinsMenus {
             if (l.max()) {
                 t.image(pack.get("chemin_" + n + "_fini", haut), CHEMIN_X0 - 2);
             } else {
-                long longueur = (CHEMIN_X1 - CHEMIN_X0) * Math.min(l.actuel(), l.requis()) / Math.max(1, l.requis());
-                t.image(pack.get("chemin_" + n + "_" + longueur / PAS, haut), CHEMIN_X0 - 2);
+                t.image(pack.get("chemin_" + n + "_" + longueurChemin(l) / PAS, haut), CHEMIN_X0 - 2);
             }
             t.texte(l.nom(), 29, y, TEXTE_ENCRE);
             t.texte("niv. " + l.niveau(), 29 + pack.largeurs().de(l.nom()) + 3, y, TEXTE_PALE);
@@ -304,18 +426,21 @@ public final class DessinsMenus {
         return Math.min(99, Math.max(0, actuel * 100 / Math.max(1, requis))) + " %";
     }
 
-    /** Titre de /sp : le fond, les cadres a l'encre de couleur autour des options, et une legende. */
-    public Component titreSp(Map<Integer, TextColor> cadres) {
+    /** Titre de /sp : le fond, et sous chaque option (ligne du milieu) une coche, une croix ou un cadenas. */
+    public Component titreSp(Map<Integer, Etat> etats) {
         Toile t = new Toile(pack);
-        t.image(pack.get("fond_sp", -4), -4);
+        t.mosaique(fondSp, -4);
         t.texte("SurviePlus", 9, PackMenus.TITRE_Y, TEXTE_TITRE);
         t.texte("Options :", 9, caseY(0) + 4, TEXTE_PALE);
         t.texte("Inventaire", 8, INVENTAIRE_Y_SP, TEXTE_ENCRE);
-        cadres.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(e ->
-                t.image(pack.get("cadre", caseY(e.getKey()) - 2), caseX(e.getKey()) - 2, e.getValue()));
-        int y = caseY(18) + 4;
-        t.texte("■", 100, y, CADRE_ON).texte("actif", 107, y, TEXTE_PALE);
-        t.texte("■", 133, y, CADRE_OFF).texte("coupé", 140, y, TEXTE_PALE);
+        etats.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(e -> {
+            String id = switch (e.getValue()) {
+                case ACTIF -> "coche";
+                case COUPE -> "croix";
+                case BLOQUE -> "cadenas";
+            };
+            t.image(pack.get(id, MARQUES_Y), caseX(e.getKey()) + 4);
+        });
         return t.fin();
     }
 }

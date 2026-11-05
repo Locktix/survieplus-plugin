@@ -37,6 +37,14 @@ public final class Toile {
         return this;
     }
 
+    /** Grande image decoupee en carreaux, son coin haut gauche en x. */
+    public Toile mosaique(PackMenus.Mosaique m, int x) {
+        for (int r = 0; r * PackMenus.CARREAU < m.hauteur(); r++)
+            for (int c = 0; c * PackMenus.CARREAU < m.largeur(); c++)
+                image(pack.get(m.id() + "_" + r + "_" + c, m.y() + r * PackMenus.CARREAU), x + c * PackMenus.CARREAU);
+        return this;
+    }
+
     /** Texte dont le premier pixel est a x, le haut des lettres a y. */
     public Toile texte(String s, int x, int y, TextColor couleur) {
         if (s.isEmpty()) return this;

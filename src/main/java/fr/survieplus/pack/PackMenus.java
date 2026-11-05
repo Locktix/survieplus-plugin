@@ -62,24 +62,71 @@ public final class PackMenus {
 
     /** Ajoute une image dont le bord haut est a y (pixels du menu). */
     Glyphe image(String id, Dessin d, int y) {
+        return image(id, d.img, y, 1);
+    }
+
+    /**
+     * Ajoute une image "fine" : echelle pixels de l'image par pixel du menu (3 = trois fois plus fine que le jeu).
+     * Sa hauteur doit etre un multiple de l'echelle, et l'image ne doit pas depasser 256 x 256 (taille des pages
+     * de police du client) : voir {@link #mosaique}.
+     */
+    Glyphe image(String id, BufferedImage img, int y, int echelle) {
         String cle = id + "@" + y;
         Glyphe g = glyphes.get(cle);
         if (g != null) return g;
+        if (img.getWidth() > 256 || img.getHeight() > 256 || img.getHeight() % echelle != 0)
+            throw new IllegalArgumentException(id + " : " + img.getWidth() + " x " + img.getHeight() + " (echelle " + echelle + ")");
         String chemin = "menu/" + id.replaceAll("[^a-z0-9_]", "_") + ".png";
-        fichiers.putIfAbsent("assets/survieplus/textures/" + chemin, png(d.img));
+        fichiers.putIfAbsent("assets/survieplus/textures/" + chemin, png(img));
         String c = new String(Character.toChars(prochain++));
+        int hauteur = img.getHeight() / echelle;
         JsonObject p = new JsonObject();
         p.addProperty("type", "bitmap");
         p.addProperty("file", "survieplus:" + chemin);
         p.addProperty("ascent", TITRE_Y + 7 - y);
-        p.addProperty("height", d.h);
+        p.addProperty("height", hauteur);
         JsonArray chars = new JsonArray();
         chars.add(c);
         p.add("chars", chars);
         providers.add(p);
-        g = new Glyphe(c, d.avance());
+        g = new Glyphe(c, avance(img, hauteur));
         glyphes.put(cle, g);
         return g;
+    }
+
+    /** Avance du curseur apres une image, calculee comme le client : largeur utile x echelle, arrondie, + 1. */
+    static int avance(BufferedImage img, int hauteur) {
+        int largeur = 0;
+        for (int x = img.getWidth() - 1; x >= 0 && largeur == 0; x--)
+            for (int y = 0; y < img.getHeight(); y++)
+                if ((img.getRGB(x, y) >>> 24) != 0) {
+                    largeur = x + 1;
+                    break;
+                }
+        return (int) (0.5 + (double) ((float) largeur * ((float) hauteur / (float) img.getHeight()))) + 1;
+    }
+
+    /** Remplace une texture du jeu dans le pack (ex : le fond des livres). */
+    void texture(String chemin, BufferedImage img) {
+        fichiers.put("assets/minecraft/textures/" + chemin, png(img));
+    }
+
+    /** Cote d'un carreau de mosaique, en pixels du menu. */
+    static final int CARREAU = 46;
+
+    /** Une grande image fine decoupee en carreaux (chacun est un caractere de la police). */
+    public record Mosaique(String id, int y, int largeur, int hauteur) {}
+
+    /** Ajoute une grande image fine (bord haut a y), decoupee en carreaux de CARREAU pixels du menu. */
+    Mosaique mosaique(String id, BufferedImage img, int y, int echelle) {
+        int w = img.getWidth() / echelle, h = img.getHeight() / echelle;
+        for (int r = 0; r * CARREAU < h; r++)
+            for (int c = 0; c * CARREAU < w; c++) {
+                int cw = Math.min(CARREAU, w - c * CARREAU), ch = Math.min(CARREAU, h - r * CARREAU);
+                BufferedImage carreau = img.getSubimage(c * CARREAU * echelle, r * CARREAU * echelle, cw * echelle, ch * echelle);
+                image(id + "_" + r + "_" + c, carreau, y + r * CARREAU, echelle);
+            }
+        return new Mosaique(id, y, w, h);
     }
 
     public Glyphe get(String id, int y) {
