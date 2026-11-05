@@ -1,6 +1,7 @@
 # Compile le plugin SurviePlus avec les jars de Paper deja presents dans le serveur.
-# Usage : powershell -File build.ps1 [-Installer] [-SansTests]
-param([switch]$Installer, [switch]$SansTests)
+# Usage : powershell -File build.ps1 [-Installer] [-SansTests] [-Publier]
+#   -Publier : envoie aussi le pack des menus dans la Release "packs" du depot GitHub (adresse de pack.adresse)
+param([switch]$Installer, [switch]$SansTests, [switch]$Publier)
 $ErrorActionPreference = 'Stop'
 $ici = $PSScriptRoot
 $serveur = Split-Path $ici -Parent
@@ -36,6 +37,27 @@ if (-not $SansTests -and (Test-Path src\test\java)) {
 & jar --create --file "build\$jar" -C build\classes .
 if ($LASTEXITCODE -ne 0) { throw "Echec de la creation du jar" }
 Write-Host "OK -> $ici\build\$jar"
+
+if ($Publier) {
+    # Le pack ne depend que du code : on le fabrique comme le fera le plugin, sous le nom qu'il cherchera en ligne
+    $depot = 'Locktix/survieplus-plugin'
+    $gh = (Get-Command gh -ErrorAction SilentlyContinue).Source
+    if (-not $gh) { $gh = "$env:ProgramFiles\GitHub CLI\gh.exe" }
+    if (-not (Test-Path $gh)) { throw "GitHub CLI (gh) introuvable : winget install GitHub.cli, puis gh auth login" }
+    $zip = & java -cp "$cp;build\classes" fr.survieplus.ExportPack build\pack | Select-Object -Last 1
+    if ($LASTEXITCODE -ne 0 -or -not $zip -or -not (Test-Path $zip)) { throw "Echec de la fabrication du pack" }
+    $ErrorActionPreference = 'Continue' # gh ecrit sur stderr meme quand tout va bien
+    & $gh release view packs -R $depot 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        & $gh release create packs -R $depot --latest=false --title "Packs de ressources" `
+            --notes "Packs de ressources telecharges par le jeu (pack.adresse de config.yml). Ne pas supprimer." 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Impossible de creer la Release packs sur $depot" }
+    }
+    & $gh release upload packs $zip -R $depot --clobber 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Echec de l'envoi du pack sur GitHub" }
+    $ErrorActionPreference = 'Stop'
+    Write-Host "Pack en ligne -> https://github.com/$depot/releases/download/packs/$(Split-Path $zip -Leaf)"
+}
 
 if ($Installer) {
     Copy-Item "build\$jar" "$serveur\plugins\$jar" -Force

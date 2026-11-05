@@ -128,6 +128,12 @@ public final class DessinsMenus {
         paysage.getGraphics().drawImage(monts, 0, paysage.getHeight() - monts.getHeight(), null);
         paysage.getGraphics().drawImage(sapins, monts.getWidth() + 2 * HD, paysage.getHeight() - sapins.getHeight(), null);
         d.livre("livre_paysage", paysage, 8);
+        // Filet de capture (images Higgsfield, preparees par outils/PrepFilet.java)
+        pack.objet("filet_vide", objet("filet_vide"));
+        pack.objet("filet_plein", objet("filet_plein"));
+        pack.variantes(PackMenus.MODELE_FILET, "minecraft:item/cobweb", java.util.Map.of(
+                PackMenus.FILET_VIDE, "survieplus:item/filet_vide",
+                PackMenus.FILET_PLEIN, "survieplus:item/filet_plein"));
         pack.texte(PackMenus.TITRE_Y);
         pack.texte(caseY(0) + 4);  // "Options :" de /sp
         // « Inventaire » sur l'etiquette de papier (le jeu ne l'affiche pas dans ces menus)
@@ -265,6 +271,14 @@ public final class DessinsMenus {
     }
 
     // ───────────── Fonds (image fine qui commence en x = -4, y = -4) ─────────────
+
+    /** Texture d'objet du pack (pack/objets/). */
+    private static BufferedImage objet(String nom) throws IOException {
+        try (InputStream in = DessinsMenus.class.getResourceAsStream("/pack/objets/" + nom + ".png")) {
+            if (in == null) throw new IOException("pack/objets/" + nom + ".png introuvable dans le plugin");
+            return ImageIO.read(in);
+        }
+    }
 
     /** Image fine du pack (pack/hd/, preparee par outils/PrepHD.java a partir des images Higgsfield). */
     private static BufferedImage hd(String nom) throws IOException {

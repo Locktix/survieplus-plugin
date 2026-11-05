@@ -26,6 +26,7 @@ public final class SurviePlus extends JavaPlugin {
     private Metiers metiers;
     private Guide guide;
     private Packs packs;
+    private Capture capture;
 
     Packs packs() {
         return packs;
@@ -58,6 +59,8 @@ public final class SurviePlus extends JavaPlugin {
         pm.registerEvents(new Recolte(this), this);
         pm.registerEvents(new Tombes(this), this);
         pm.registerEvents(new Tri(this), this);
+        capture = new Capture(this);
+        pm.registerEvents(capture, this);
         pm.registerEvents(new Menu.Ecouteur(), this);
         Sommeil.appliquer(this);
         packs = new Packs(this, Menu.CASES);
@@ -74,6 +77,7 @@ public final class SurviePlus extends JavaPlugin {
     public void onDisable() {
         if (metiers != null) metiers.sauvegarder(false);
         if (packs != null) packs.arreter();
+        if (capture != null) capture.arreter();
     }
 
     private static void message(CommandSender s, String texte, NamedTextColor couleur) {

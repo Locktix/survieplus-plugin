@@ -45,6 +45,22 @@ tombe:
 tri:
   active: true
 
+# Filet de capture (8 ficelles autour d'une perle de l'Ender) : clic droit sur un animal ou un monstre
+# pour l'attraper, clic droit sur un bloc pour le relacher. Le mob garde tout (nom, age, inventaire, metier...).
+capture:
+  active: true
+  # nombre de captures avant que le filet se dechire (0 = inusable). Ne change pas les filets deja fabriques.
+  utilisations: 10
+  # un monstre ne se capture qu'en dessous de ce pourcentage de sa vie (100 = toujours ; les animaux : toujours)
+  monstres-vie-max: 50
+  # les villageois peuvent-ils etre captures ?
+  villageois: true
+  # mobs impossibles a capturer (en plus du Wither et de l'Ender Dragon)
+  interdits:
+    - WARDEN
+    - ELDER_GUARDIAN
+    - GIANT
+
 # Sommeil partage : pourcentage des joueurs qui doivent dormir pour passer la nuit
 # (regle la regle de jeu vanilla playersSleepingPercentage ; modifiable dans /sp par les admins)
 sommeil:
@@ -163,10 +179,10 @@ metiers:
 # Il est envoye a la connexion, en plus de celui de Muscu. Ceux qui le refusent gardent les menus classiques.
 pack:
   active: true
-  # Adresse du dossier en ligne qui contient le pack. Le fichier a y mettre : plugins/SurviePlus/survieplus-menus.zip,
-  # renomme comme indique dans la console au demarrage (survieplus-menus-<empreinte>.zip).
+  # Adresse du dossier en ligne qui contient le pack (survieplus-menus-<empreinte>.zip) : la Release "packs"
+  # du depot GitHub, remplie par build.ps1 -Publier. La console previent au demarrage si le pack n'y est pas.
   # Vide = le serveur sert le pack lui-meme sur "port" (ce port doit alors etre joignable par les joueurs).
-  adresse: "https://minecraft.veldor.be"
+  adresse: "https://github.com/Locktix/survieplus-plugin/releases/download/packs"
   port: 25567
 
 # Guide : livre qui explique le serveur (options, metiers, bonus, recompenses ; genere d'apres cette config)

@@ -3,6 +3,30 @@
 Toutes les versions de SurviePlus. Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 numéros de version : [SemVer](https://semver.org/lang/fr/) (nouvelle fonction = 1.x.0, correctif = 1.x.y).
 
+## [1.2.0] — 2026-11-05
+
+### Ajouté
+- **Filet de capture** : 8 ficelles autour d'une perle de l'Ender à l'établi (la recette apparaît dans le livre
+  de recettes).
+  - **Clic droit sur un animal ou un monstre** : il entre dans le filet. **Clic droit sur un bloc** : il ressort
+    tel quel (nom, âge, vie, inventaire d'un âne, métier et échanges d'un villageois…). Sur un coffre ou une
+    porte, il faut être accroupi.
+  - Un mob relâché ne disparaît plus quand on s'éloigne, même un monstre.
+  - Les **monstres** doivent d'abord être affaiblis (moins de 50 % de leur vie). Impossible de capturer les boss
+    (Wither, Ender Dragon, Warden, gardien ancien), l'animal apprivoisé d'un autre joueur, un mob en laisse,
+    un villageois en plein échange ou un mob sur lequel un joueur est assis.
+  - Le filet se déchire après 10 captures (barre d'usure).
+  - **Texture dessinée** (filet vide, et filet plein qui brille en vert) grâce au pack des menus. Sans le pack,
+    le filet ressemble à une toile d'araignée.
+  - Une page « Le filet » dans le livre guide.
+
+### Modifié
+- **Le pack des menus est hébergé sur GitHub** (Release `packs` du dépôt) au lieu d'O2switch :
+  `pack.adresse: "https://github.com/Locktix/survieplus-plugin/releases/download/packs"`.
+  `build.ps1 -Publier` le fabrique et l'envoie ; plus besoin de le mettre en ligne à la main.
+- Au démarrage, la console prévient si le pack n'est pas en ligne à cette adresse.
+  - Réglages dans `capture:` (`config.yml`), permission `survieplus.capture`.
+
 ## [1.1.0] — 2026-11-04
 
 Les métiers remplacent AuraSkills : on progresse en jouant, sans mana, sans capacités et sans stats.

@@ -39,6 +39,13 @@ public final class PackMenus {
 
     public static final Key POLICE = Key.key("survieplus", "menu");
     public static final Key VIDE = Key.key("survieplus", "vide");
+    /**
+     * Objets dessines par le pack : l'objet garde le modele d'un objet du jeu (vu par ceux qui n'ont pas le pack)
+     * et porte ce texte dans custom_model_data ; le pack remplace alors son modele.
+     */
+    public static final String FILET_VIDE = "survieplus:filet_vide", FILET_PLEIN = "survieplus:filet_plein";
+    /** Objet du jeu dont le filet emprunte le modele. */
+    public static final Key MODELE_FILET = Key.key("minecraft", "cobweb");
     /** Position du titre dans un menu de coffre. */
     static final int TITRE_X = 8, TITRE_Y = 6;
     private static final int FORMAT = 97;
@@ -109,6 +116,46 @@ public final class PackMenus {
     /** Remplace une texture du jeu dans le pack (ex : le fond des livres). */
     void texture(String chemin, BufferedImage img) {
         fichiers.put("assets/minecraft/textures/" + chemin, png(img));
+    }
+
+    /** Texture et modele plat d'un objet du pack : survieplus:item/<nom>. */
+    void objet(String nom, BufferedImage img) {
+        fichiers.put("assets/survieplus/textures/item/" + nom + ".png", png(img));
+        JsonObject textures = new JsonObject();
+        textures.addProperty("layer0", "survieplus:item/" + nom);
+        JsonObject modele = new JsonObject();
+        modele.addProperty("parent", "minecraft:item/generated");
+        modele.add("textures", textures);
+        fichiers.put("assets/survieplus/models/item/" + nom + ".json", modele.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Remplace le modele d'un objet du jeu selon son custom_model_data (texte -> modele survieplus:item/...).
+     * Sans texte reconnu, l'objet garde son modele normal (repli = fichier d'origine du jeu).
+     */
+    void variantes(Key objet, String modeleOrigine, Map<String, String> cas) {
+        JsonArray liste = new JsonArray();
+        // Trie : l'ordre de Map.of change a chaque lancement de Java, et le pack doit etre identique partout
+        new TreeMap<>(cas).forEach((texte, modele) -> {
+            JsonObject m = new JsonObject();
+            m.addProperty("type", "minecraft:model");
+            m.addProperty("model", modele);
+            JsonObject c = new JsonObject();
+            c.addProperty("when", texte);
+            c.add("model", m);
+            liste.add(c);
+        });
+        JsonObject repli = new JsonObject();
+        repli.addProperty("type", "minecraft:model");
+        repli.addProperty("model", modeleOrigine);
+        JsonObject select = new JsonObject();
+        select.addProperty("type", "minecraft:select");
+        select.addProperty("property", "minecraft:custom_model_data");
+        select.add("cases", liste);
+        select.add("fallback", repli);
+        JsonObject def = new JsonObject();
+        def.add("model", select);
+        fichiers.put("assets/" + objet.namespace() + "/items/" + objet.value() + ".json", def.toString().getBytes(StandardCharsets.UTF_8));
     }
 
     /** Cote d'un carreau de mosaique, en pixels du menu. */

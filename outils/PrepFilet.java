@@ -1,0 +1,130 @@
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+/**
+ * Prepare les textures du filet de capture a partir de l'image Higgsfield (a lancer a la main) :
+ *   java outils/PrepFilet.java maquettes/higgsfield/filet.png src/main/resources/pack/objets 32
+ * L'image contient deux icones sur fond magenta : filet vide a gauche, filet plein a droite.
+ * Chaque icone est detouree, recadree au carre puis reduite en pixel art (32 x 32 : en 16 x 16 les mailles du filet deviennent illisibles).
+ * Un apercu agrandi (apercu_*.png) est ecrit dans le dossier parent : a verifier puis supprimer.
+ */
+public class PrepFilet {
+
+    public static void main(String[] a) throws Exception {
+        BufferedImage src = ImageIO.read(new File(a[0]));
+        File dst = new File(a[1]);
+        int taille = a.length > 2 ? Integer.parseInt(a[2]) : 16;
+        dst.mkdirs();
+        int moitie = src.getWidth() / 2;
+        String[] noms = {"filet_vide", "filet_plein"};
+        BufferedImage[] icones = new BufferedImage[2];
+        int[][] cadres = new int[2][];
+        int cote = 0;
+        for (int i = 0; i < 2; i++) {
+            icones[i] = detourer(src.getSubimage(i * moitie, 0, moitie, src.getHeight()));
+            cadres[i] = cadre(icones[i]);
+            cote = Math.max(cote, Math.max(cadres[i][2] - cadres[i][0], cadres[i][3] - cadres[i][1]) + 1);
+        }
+        // Meme echelle pour les deux icones (le filet ne change pas de taille quand il se remplit)
+        for (int i = 0; i < 2; i++) {
+            BufferedImage icone = reduire(icones[i], cadres[i], cote, taille);
+            ImageIO.write(icone, "png", new File(dst, noms[i] + ".png"));
+            ImageIO.write(agrandir(icone, 256 / taille), "png", new File(dst.getParentFile(), "apercu_" + noms[i] + ".png"));
+        }
+    }
+
+    /** Fond magenta -> transparent. */
+    static boolean fond(int rgb) {
+        int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255;
+        // Magenta pur ou melange au magenta (bord des mailles) : rouge et bleu nettement au-dessus du vert
+        return Math.min(r, b) - g > 60 && Math.abs(r - b) < 90;
+    }
+
+    static BufferedImage detourer(BufferedImage img) {
+        BufferedImage out = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < img.getHeight(); y++)
+            for (int x = 0; x < img.getWidth(); x++) {
+                int rgb = img.getRGB(x, y);
+                out.setRGB(x, y, fond(rgb) ? 0 : (0xFF000000 | rgb));
+            }
+        return out;
+    }
+
+    /** Cadre {x0, y0, x1, y1} de l'icone, sans les petits points isoles (etincelles) qui l'agrandiraient. */
+    static int[] cadre(BufferedImage img) {
+        int w = img.getWidth(), h = img.getHeight();
+        int[] groupe = new int[w * h];
+        java.util.List<int[]> cadres = new java.util.ArrayList<>();
+        java.util.List<Integer> tailles = new java.util.ArrayList<>();
+        java.util.ArrayDeque<Integer> pile = new java.util.ArrayDeque<>();
+        for (int depart = 0; depart < w * h; depart++) {
+            if (groupe[depart] != 0 || (img.getRGB(depart % w, depart / w) >>> 24) == 0) continue;
+            int id = cadres.size() + 1, n = 0;
+            int[] c = {w, h, -1, -1};
+            groupe[depart] = id;
+            pile.push(depart);
+            while (!pile.isEmpty()) {
+                int i = pile.pop(), x = i % w, y = i / w;
+                n++;
+                c[0] = Math.min(c[0], x); c[1] = Math.min(c[1], y); c[2] = Math.max(c[2], x); c[3] = Math.max(c[3], y);
+                int[][] voisins = {{x + 1, y}, {x - 1, y}, {x, y + 1}, {x, y - 1}};
+                for (int[] v : voisins) {
+                    if (v[0] < 0 || v[1] < 0 || v[0] >= w || v[1] >= h) continue;
+                    int j = v[1] * w + v[0];
+                    if (groupe[j] == 0 && (img.getRGB(v[0], v[1]) >>> 24) != 0) {
+                        groupe[j] = id;
+                        pile.push(j);
+                    }
+                }
+            }
+            cadres.add(c);
+            tailles.add(n);
+        }
+        int plusGrand = tailles.stream().max(Integer::compare).orElse(0);
+        int[] t = {w, h, -1, -1};
+        for (int i = 0; i < cadres.size(); i++)
+            if (tailles.get(i) * 20 >= plusGrand) { // les etincelles font moins de 5 % de l'icone
+                int[] c = cadres.get(i);
+                t[0] = Math.min(t[0], c[0]); t[1] = Math.min(t[1], c[1]); t[2] = Math.max(t[2], c[2]); t[3] = Math.max(t[3], c[3]);
+            }
+        return t;
+    }
+
+    /** Reduit l'image dans le carre de cote "cote" centre sur le cadre : chaque case prend la couleur moyenne de son centre. */
+    static BufferedImage reduire(BufferedImage img, int[] c, int cote, int n) {
+        double cx = (c[0] + c[2]) / 2.0, cy = (c[1] + c[3]) / 2.0;
+        double pas = (double) cote / n;
+        BufferedImage out = new BufferedImage(n, n, BufferedImage.TYPE_INT_ARGB);
+        for (int ty = 0; ty < n; ty++)
+            for (int tx = 0; tx < n; tx++) {
+                double sx = cx - cote / 2.0 + tx * pas, sy = cy - cote / 2.0 + ty * pas;
+                long r = 0, g = 0, b = 0;
+                int pleins = 0, total = 0;
+                for (double y = sy + pas * 0.25; y < sy + pas * 0.75; y++)
+                    for (double x = sx + pas * 0.25; x < sx + pas * 0.75; x++) {
+                        int ix = (int) x, iy = (int) y;
+                        total++;
+                        if (ix < 0 || iy < 0 || ix >= img.getWidth() || iy >= img.getHeight()) continue;
+                        int p = img.getRGB(ix, iy);
+                        if ((p >>> 24) == 0) continue;
+                        pleins++;
+                        r += (p >> 16) & 255; g += (p >> 8) & 255; b += p & 255;
+                    }
+                if (total == 0 || pleins * 3 < total) continue; // un tiers suffit : garde les fils fins du filet
+                out.setRGB(tx, ty, 0xFF000000 | (int) (r / pleins) << 16 | (int) (g / pleins) << 8 | (int) (b / pleins));
+            }
+        return out;
+    }
+
+    static BufferedImage agrandir(BufferedImage img, int f) {
+        BufferedImage out = new BufferedImage(img.getWidth() * f, img.getHeight() * f, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < out.getHeight(); y++)
+            for (int x = 0; x < out.getWidth(); x++) {
+                int p = img.getRGB(x / f, y / f);
+                // damier gris sous les pixels transparents, pour voir le detourage
+                out.setRGB(x, y, (p >>> 24) != 0 ? p : (((x / 8 + y / 8) & 1) == 0 ? 0xFFBBBBBB : 0xFF888888));
+            }
+        return out;
+    }
+}

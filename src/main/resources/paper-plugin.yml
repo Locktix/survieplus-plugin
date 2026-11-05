@@ -1,5 +1,5 @@
 name: SurviePlus
-version: '1.1.0'
+version: '1.2.0'
 main: fr.survieplus.SurviePlus
 api-version: '26.3'
 description: Ameliorations de la survie (abattage d'arbre, minage de filon...)
@@ -22,6 +22,9 @@ permissions:
     default: true
   survieplus.metiers:
     description: Gagner de l'XP de metier et ouvrir /metiers
+    default: true
+  survieplus.capture:
+    description: Fabriquer et utiliser le filet de capture
     default: true
   survieplus.admin:
     description: /survieplus reload, reglage du sommeil, ouvrir les tombes des autres

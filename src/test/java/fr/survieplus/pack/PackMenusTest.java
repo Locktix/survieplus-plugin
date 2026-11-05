@@ -67,6 +67,31 @@ class PackMenusTest {
     }
 
     @Test
+    void filet_texturesEtRepliToileDAraignee() throws IOException {
+        JsonObject select = json("assets/minecraft/items/cobweb.json").getAsJsonObject("model");
+        assertEquals("minecraft:select", select.get("type").getAsString());
+        assertEquals("minecraft:custom_model_data", select.get("property").getAsString());
+        // Une vraie toile d'araignee (sans texte) garde le modele du jeu
+        assertEquals("minecraft:item/cobweb", select.getAsJsonObject("fallback").get("model").getAsString());
+        Map<String, String> cas = new java.util.LinkedHashMap<>();
+        for (var c : select.getAsJsonArray("cases"))
+            cas.put(c.getAsJsonObject().get("when").getAsString(),
+                    c.getAsJsonObject().getAsJsonObject("model").get("model").getAsString());
+        // Ordre fixe (trie) : sinon le pack change d'un lancement de Java a l'autre et le jeu le refuse
+        assertEquals(new java.util.ArrayList<>(new TreeMap<>(cas).keySet()), new java.util.ArrayList<>(cas.keySet()));
+        assertEquals(Map.of(PackMenus.FILET_VIDE, "survieplus:item/filet_vide",
+                PackMenus.FILET_PLEIN, "survieplus:item/filet_plein"), cas);
+        for (String nom : List.of("filet_vide", "filet_plein")) {
+            assertEquals("survieplus:item/" + nom, json("assets/survieplus/models/item/" + nom + ".json")
+                    .getAsJsonObject("textures").get("layer0").getAsString());
+            BufferedImage img = javax.imageio.ImageIO.read(new ByteArrayInputStream(
+                    zip.get("assets/survieplus/textures/item/" + nom + ".png")));
+            assertEquals(32, img.getWidth(), nom);
+            assertEquals(32, img.getHeight(), nom);
+        }
+    }
+
+    @Test
     void polices_valides() {
         // Le client refuse toute la police si une image a un "ascent" plus grand que sa hauteur
         for (String chemin : zip.keySet()) {

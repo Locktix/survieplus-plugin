@@ -18,7 +18,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -29,13 +34,21 @@ import java.util.logging.Level;
 /**
  * Pack de ressources des menus : fabrique au demarrage, envoye a la connexion (a cote de celui de Muscu,
  * le jeu empile les packs), et servi soit par un mini serveur web integre (pack.port), soit depuis une
- * adresse externe (pack.adresse, ex. https://minecraft.veldor.be) quand le port n'est pas joignable.
+ * adresse externe (pack.adresse : la Release "packs" du depot GitHub) quand le port n'est pas joignable.
+ * Le pack ne depend que du code : build.ps1 -Publier le fabrique (voir {@link #exporter}) et l'envoie sur GitHub.
  * Les menus dessines ne s'affichent qu'aux joueurs qui ont bien charge le pack.
  */
 public final class Packs implements Listener {
 
     private static final UUID ID_PACK = UUID.nameUUIDFromBytes("survieplus-menus".getBytes());
     private static final String PREFIXE_FICHIER = "survieplus-menus-";
+
+    /** Le pack tel que le plugin le fabriquera, ecrit dans "dossier" sous le nom attendu en ligne. */
+    public static Path exporter(int[] casesSp, Path dossier) throws IOException {
+        PackMenus pack = DessinsMenus.fabriquer(casesSp).pack();
+        Files.createDirectories(dossier);
+        return Files.write(dossier.resolve(PREFIXE_FICHIER + pack.sha1().substring(0, 12) + ".zip"), pack.zip());
+    }
 
     private final JavaPlugin plugin;
     private final int[] casesSp;
@@ -84,8 +97,9 @@ public final class Packs implements Listener {
         String empreinte = dessins.pack().sha1().substring(0, 12);
         if (!adresse().isEmpty()) {
             arreter();
-            plugin.getLogger().info("Pack des menus : " + url(null) + " (empreinte " + empreinte + "). "
-                    + "Ce fichier doit etre en ligne : c'est plugins/SurviePlus/survieplus-menus.zip renomme.");
+            String url = url(null);
+            plugin.getLogger().info("Pack des menus : " + url + " (empreinte " + empreinte + ")");
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> verifierEnLigne(url));
             return;
         }
         if (serveur != null && portServeur == port()) return;
@@ -123,6 +137,24 @@ public final class Packs implements Listener {
             arreter();
             dessins = null;
         }
+    }
+
+    /** Previent dans la console si le pack n'est pas en ligne (oubli de build.ps1 -Publier). */
+    private void verifierEnLigne(String url) {
+        int code;
+        try (HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL)
+                .connectTimeout(Duration.ofSeconds(10)).build()) {
+            HttpRequest req = HttpRequest.newBuilder(URI.create(url)).header("Range", "bytes=0-0")
+                    .timeout(Duration.ofSeconds(15)).GET().build();
+            code = client.send(req, HttpResponse.BodyHandlers.discarding()).statusCode();
+        } catch (Exception e) {
+            plugin.getLogger().warning("Pack des menus : impossible de verifier " + url + " (" + e.getMessage() + ")");
+            return;
+        }
+        if (code >= 400)
+            plugin.getLogger().warning("Pack des menus INTROUVABLE en ligne (code " + code + ") : " + url
+                    + ". Les joueurs auront les menus classiques. Publie-le : build.ps1 -Publier (dans survieplus-plugin), "
+                    + "ou mets plugins/SurviePlus/survieplus-menus.zip en ligne sous ce nom.");
     }
 
     public void arreter() {
