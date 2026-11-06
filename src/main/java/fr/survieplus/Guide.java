@@ -189,6 +189,8 @@ final class Guide implements Listener {
         if (plugin.getConfig().getBoolean("capture.active", true) && p.hasPermission(Capture.PERMISSION))
             sections.add(new Section(bloc("cobweb"), "Le filet", plugin.bestiaire().actif()
                     ? List.of(pageFilet(), pageBestiaire()) : List.of(pageFilet())));
+        if (mt.actif() && plugin.pioche().actif() && p.hasPermission(Pioche.PERMISSION))
+            sections.add(new Section(objet("stone_pickaxe"), "La pioche", List.of(pagePioche(), pageGainsPioche())));
         if (mt.actif()) {
             sections.add(new Section(objet("experience_bottle"), "Les métiers", List.of(pageMetiers())));
             sections.add(new Section(objet("nether_star"), "Les niveaux", List.of(pageNiveaux())));
@@ -274,6 +276,25 @@ final class Guide implements Listener {
                 .append(gras("Clic droit", ENCRE)).append(t(" sur un bloc : il ressort, tel quel.\n\n"));
         page.append(discret("Pas de boss."));
         if (usages > 0) page.append(discret(" Se déchire après " + usages + " captures."));
+        return page.build();
+    }
+
+    private Component pagePioche() {
+        double bonus = plugin.getConfig().getDouble("pioche.bonus-xp", 15);
+        var page = page().append(titre(objet("stone_pickaxe"), "La pioche", TITRE))
+                .append(t("4 ")).append(objet("copper_ingot")).append(t(" et 4 ")).append(objet("amethyst_shard"))
+                .append(t(" autour d'une ")).append(objet("stone_pickaxe"))
+                .append(Component.text("\n\n"))
+                .append(gras("À toi seul", ENCRE)).append(t(" : liée à qui la fabrique, incassable, gardée à ta mort.\n\n"))
+                .append(gras("Elle grandit", ENCRE)).append(t(" avec ton niveau de Mineur : plus rapide à chaque niveau, un gain tous les 5.\n\n"));
+        if (bonus > 0) page.append(discret("+" + Metiers.pourcent(bonus / 100) + " d'XP de Mineur avec elle.\n"));
+        return page.append(lienCommande("Perdue ? /pioche", "/pioche")).build();
+    }
+
+    private Component pageGainsPioche() {
+        var page = page().append(titre(objet("diamond_pickaxe"), "Ses gains", TITRE));
+        for (Pioche.Gain g : plugin.pioche().gains())
+            page.append(gras(String.valueOf(g.niveau()), ENCRE)).append(t("  " + g.court() + "\n"));
         return page.build();
     }
 

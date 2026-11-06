@@ -49,6 +49,16 @@ public final class PackMenus {
     /** Medaille du naturaliste (bestiaire complet) : modele de pepite d'or sans le pack. */
     public static final String MEDAILLE = "survieplus:medaille";
     public static final Key MODELE_MEDAILLE = Key.key("minecraft", "gold_nugget");
+    /**
+     * Apparences de la pioche du mineur (custom_model_data -> objet du jeu qui la porte). Sans le pack,
+     * on voit la pioche du jeu correspondante.
+     */
+    public static final Map<String, String> PIOCHES = Map.of(
+            "survieplus:pioche_pierre", "stone_pickaxe",
+            "survieplus:pioche_fer", "iron_pickaxe",
+            "survieplus:pioche_diamant", "diamond_pickaxe",
+            "survieplus:pioche_netherite", "netherite_pickaxe",
+            "survieplus:pioche_maitre", "netherite_pickaxe");
     /** Icones des menus, seulement pour ceux qui ont le pack (item_model direct). */
     public static final Key INCONNU = Key.key("survieplus", "inconnu"), BESTIAIRE = Key.key("survieplus", "bestiaire");
     /** Position du titre dans un menu de coffre. */
@@ -125,11 +135,16 @@ public final class PackMenus {
 
     /** Texture et modele plat d'un objet du pack : survieplus:item/<nom>. */
     void objet(String nom, BufferedImage img) {
+        objet(nom, img, "minecraft:item/generated");
+    }
+
+    /** Idem avec un autre modele parent (minecraft:item/handheld : tenu en main comme un outil). */
+    void objet(String nom, BufferedImage img, String parent) {
         fichiers.put("assets/survieplus/textures/item/" + nom + ".png", png(img));
         JsonObject textures = new JsonObject();
         textures.addProperty("layer0", "survieplus:item/" + nom);
         JsonObject modele = new JsonObject();
-        modele.addProperty("parent", "minecraft:item/generated");
+        modele.addProperty("parent", parent);
         modele.add("textures", textures);
         fichiers.put("assets/survieplus/models/item/" + nom + ".json", modele.toString().getBytes(StandardCharsets.UTF_8));
         // Definition d'objet survieplus:<nom>, pour item_model (icones des menus dessines)

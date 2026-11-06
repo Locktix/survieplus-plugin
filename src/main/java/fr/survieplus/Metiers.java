@@ -290,6 +290,7 @@ final class Metiers implements Listener {
     void reinitialiser(Player p) {
         Arrays.fill(donnees(p).xp, 0);
         modifie = true;
+        plugin.pioche().actualiser(p);
     }
 
     private void niveauGagne(Player p, Metier m, int avant, int niveau) {
@@ -298,6 +299,7 @@ final class Metiers implements Listener {
                 .append(Component.text(m.nom + " niveau " + niveau + " ! ", m.couleur))
                 .append(Component.text(m.bonus + " : " + pourcent(chanceDouble(niveau)), NamedTextColor.GRAY)));
         recompenses.donner(p, m, avant, niveau);
+        if (m == Metier.MINEUR) plugin.pioche().niveauGagne(p, avant, niveau);
         for (Module mod : Module.values()) {
             int niv = plugin.niveauRequis(mod);
             if (mod.metierRequis() == m && niv > 0 && avant < niv && niveau >= niv)
@@ -460,6 +462,7 @@ final class Metiers implements Listener {
 
         ItemStack outil = p.getInventory().getItemInMainHand();
         if (b.getDrops(outil, p).isEmpty()) return; // mauvais outil : le bloc est detruit sans rien donner
+        if (m == Metier.MINEUR) xp = plugin.pioche().xpMineur(p, outil, xp); // bonus de la pioche du mineur
         gagner(p, m, xp);
 
         // Bucheron palier 2 : pomme ou pousse en plus

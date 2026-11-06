@@ -28,6 +28,11 @@ public final class SurviePlus extends JavaPlugin {
     private Packs packs;
     private Capture capture;
     private Bestiaire bestiaire;
+    private Pioche pioche;
+
+    Pioche pioche() {
+        return pioche;
+    }
 
     Bestiaire bestiaire() {
         return bestiaire;
@@ -48,6 +53,9 @@ public final class SurviePlus extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // Avant copyDefaults : isSet() ne doit voir que ce qui est vraiment ecrit dans le fichier
+        int maj = MajConfig.appliquer(getConfig());
+        if (maj > 0) getLogger().info("config.yml : " + maj + " ancien(s) reglage(s) par defaut mis a jour (nouvelles valeurs de la 1.4.0)");
         // Ajoute dans config.yml les options des nouvelles versions
         getConfig().options().copyDefaults(true);
         saveConfig();
@@ -61,6 +69,8 @@ public final class SurviePlus extends JavaPlugin {
         pm.registerEvents(guide, this);
         pm.registerEvents(new Bucheron(this), this);
         pm.registerEvents(new Mineur(this), this);
+        pioche = new Pioche(this);
+        pm.registerEvents(pioche, this);
         pm.registerEvents(new Recolte(this), this);
         pm.registerEvents(new Tombes(this), this);
         pm.registerEvents(new Tri(this), this);
@@ -79,6 +89,10 @@ public final class SurviePlus extends JavaPlugin {
             e.registrar().register("survieplus", "Ouvre le menu SurviePlus", List.of("sp"), new Commande());
             e.registrar().register("metiers", "Progression des metiers", List.of("metier"), new CommandeMetiers());
             e.registrar().register("bestiaire", "Especes capturees au filet", List.of(), new CommandeBestiaire());
+            e.registrar().register("pioche", "Recuperer sa pioche du mineur", List.of(), (src, args) -> {
+                if (src.getExecutor() instanceof Player p) pioche.commande(p);
+                else src.getSender().sendMessage("Commande reservee aux joueurs.");
+            });
         });
     }
 
@@ -87,6 +101,7 @@ public final class SurviePlus extends JavaPlugin {
         if (metiers != null) metiers.sauvegarder(false);
         if (packs != null) packs.arreter();
         if (capture != null) capture.arreter();
+        if (pioche != null) pioche.arreter();
     }
 
     private static void message(CommandSender s, String texte, NamedTextColor couleur) {
@@ -110,12 +125,12 @@ public final class SurviePlus extends JavaPlugin {
                 }
                 Player cible = getServer().getPlayerExact(args[1]);
                 if (cible == null) {
-                    message(s, "Joueur introuvable (il doit être connecté).", NamedTextColor.RED);
+                    message(s, "Joueur introuvable (il doit Ãªtre connectÃ©).", NamedTextColor.RED);
                     return;
                 }
                 if (!donner) {
                     metiers.reinitialiser(cible);
-                    message(s, "Métiers de " + cible.getName() + " remis à zéro.", NamedTextColor.GREEN);
+                    message(s, "MÃ©tiers de " + cible.getName() + " remis Ã  zÃ©ro.", NamedTextColor.GREEN);
                     return;
                 }
                 Metier m = Metier.parCle(args[2]);
@@ -126,11 +141,11 @@ public final class SurviePlus extends JavaPlugin {
                     xp = -1;
                 }
                 if (m == null || xp <= 0) {
-                    message(s, "Métier : bucheron, mineur, fermier, pecheur, chasseur ; XP : nombre positif.", NamedTextColor.RED);
+                    message(s, "MÃ©tier : bucheron, mineur, fermier, pecheur, chasseur ; XP : nombre positif.", NamedTextColor.RED);
                     return;
                 }
                 metiers.ajouter(cible, m, xp, false);
-                message(s, xp + " XP de " + m.nom + " donnés à " + cible.getName() + ".", NamedTextColor.GREEN);
+                message(s, xp + " XP de " + m.nom + " donnÃ©s Ã  " + cible.getName() + ".", NamedTextColor.GREEN);
                 return;
             }
             if (!(src.getExecutor() instanceof Player p)) {
@@ -138,7 +153,7 @@ public final class SurviePlus extends JavaPlugin {
                 return;
             }
             if (!metiers.actif() || !p.hasPermission(Metiers.PERMISSION)) {
-                message(s, "Les métiers sont désactivés.", NamedTextColor.RED);
+                message(s, "Les mÃ©tiers sont dÃ©sactivÃ©s.", NamedTextColor.RED);
                 return;
             }
             new MenuMetiers(SurviePlus.this, p).ouvrir();
@@ -164,7 +179,7 @@ public final class SurviePlus extends JavaPlugin {
                 return;
             }
             if (!bestiaire.actif() || !p.hasPermission(Capture.PERMISSION)) {
-                message(p, "Le bestiaire est désactivé.", NamedTextColor.RED);
+                message(p, "Le bestiaire est dÃ©sactivÃ©.", NamedTextColor.RED);
                 return;
             }
             new MenuBestiaire(SurviePlus.this, p, 0).ouvrir();

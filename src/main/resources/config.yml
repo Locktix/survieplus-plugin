@@ -97,6 +97,7 @@ metiers:
     replanter: 3           # replantation auto apres l'abattage d'un arbre : niveau de bucheron
     recolte: 3             # recolte + replantation au clic droit : niveau de fermier
     tombe: 0               # tombe a la mort : niveau de chasseur (0 = libre pour tous)
+    minage-3x3: 50         # minage 3x3 de la pioche du mineur : niveau de mineur
   # niveaux qui debloquent les 2 bonus de chaque metier (0 = jamais)
   #   Bucheron : 1. la hache s'use moins en abattant un arbre    2. pomme ou pousse en plus
   #   Mineur   : 1. la pioche s'use moins en minant un filon     2. fer, or, cuivre tombent en lingots
@@ -132,17 +133,17 @@ metiers:
   xp:
     bucheron: 2            # par buche
     mineur:                # par minerai (les variantes deepslate comptent pareil) ; 0 = rien
-      COAL_ORE: 3
-      COPPER_ORE: 2
-      IRON_ORE: 5
-      GOLD_ORE: 7
-      NETHER_GOLD_ORE: 2
-      REDSTONE_ORE: 3
-      LAPIS_ORE: 6
-      NETHER_QUARTZ_ORE: 3
-      DIAMOND_ORE: 15
-      EMERALD_ORE: 20
-      ANCIENT_DEBRIS: 25
+      COAL_ORE: 4
+      COPPER_ORE: 3
+      IRON_ORE: 7
+      GOLD_ORE: 10
+      NETHER_GOLD_ORE: 3
+      REDSTONE_ORE: 4
+      LAPIS_ORE: 8
+      NETHER_QUARTZ_ORE: 4
+      DIAMOND_ORE: 20
+      EMERALD_ORE: 25
+      ANCIENT_DEBRIS: 35
     fermier:
       culture: 2           # culture mure : ble, carottes, patates, betteraves, verrues, cacao
       melon-citrouille: 3
@@ -170,9 +171,9 @@ metiers:
       10: ["IRON_AXE efficiency:2 unbreaking:1"]
       25: ["DIAMOND_AXE efficiency:3 unbreaking:3"]
       50: ["ENCHANTED_BOOK mending:1"]
-    mineur:
-      10: ["IRON_PICKAXE efficiency:2 unbreaking:1"]
-      25: ["DIAMOND_PICKAXE efficiency:3 fortune:2"]
+    mineur:                # (la pioche du mineur evolue avec le metier : pas de pioche offerte)
+      10: ["IRON_INGOT 16", "TORCH 64"]
+      25: ["DIAMOND 5", "RAIL 32"]
       50: ["ENCHANTED_BOOK mending:1"]
     fermier:
       10: ["BONE_MEAL 32"]
@@ -201,3 +202,17 @@ pack:
 # Donne une seule fois a la premiere connexion ; toujours lisible depuis /sp, et /sp guide en redonne un.
 guide:
   premiere-connexion: true
+
+# Pioche du mineur : pioche en pierre entouree de 4 eclats d'amethyste et 4 lingots de cuivre.
+# Liee a celui qui la fabrique (une seule par joueur, /pioche si elle est perdue), incassable,
+# gardee a la mort. Son niveau = le niveau de Mineur du joueur : elle mine un peu plus vite a chaque
+# niveau et gagne : niv 5 Fortune I, 10 fer, 15 aimant, 20 Fortune II, 25 diamant, 30 vision nocturne sous terre,
+# 40 netherite + Fortune III, 45 filons plus grands, 50 apparence Grand maitre (+ minage 3x3, voir
+# metiers.deblocage.minage-3x3). La fonte auto reste le bonus du metier (metiers.bonus-niveau-2).
+pioche:
+  active: true
+  bonus-xp: 15             # % d'XP de mineur en plus en minant avec elle
+  vitesse-max: 26          # vitesse de minage ajoutee au niveau max (26 = comme Efficacite V)
+  vision-y: 62             # vision nocturne (niv 30) sous terre : sous cette hauteur et sans ciel au-dessus, pioche en main
+  filon-max-blocs: 128     # taille max d'un filon des le niveau 45 (sinon mineur.max-blocs)
+  minage-3x3: true         # false = minage 3x3 desactive pour tous

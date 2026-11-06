@@ -19,7 +19,9 @@ enum Module {
     TRI("tri", "tri.active", "survieplus.tri", Material.HOPPER,
             "Tri d'inventaire", "Maj + clic droit sur une case vide : tout se range"),
     BARRE_METIERS("barre-metiers", "metiers.active", Metiers.PERMISSION, Material.EXPERIENCE_BOTTLE,
-            "Barre de progression", "Affiche en haut de l'écran l'XP de métier gagnée");
+            "Barre de progression", "Affiche en haut de l'écran l'XP de métier gagnée"),
+    MINAGE_3X3("minage-3x3", "pioche.minage-3x3", Pioche.PERMISSION, Material.DIAMOND_PICKAXE,
+            "Minage 3×3", "Pioche du mineur : casse 3×3 (accroupi : 1 bloc)");
 
     final String cle;
     final String cheminConfig;
@@ -46,6 +48,7 @@ enum Module {
             case REPLANTER -> Metier.BUCHERON;
             case RECOLTE -> Metier.FERMIER;
             case TOMBE -> Metier.CHASSEUR;
+            case MINAGE_3X3 -> Metier.MINEUR;
             default -> null;
         };
     }

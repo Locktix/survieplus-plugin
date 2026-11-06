@@ -11,10 +11,15 @@ import java.io.File;
  * parent : a verifier puis supprimer. Planches actuelles :
  *   java outils/PrepIcones.java maquettes/higgsfield/filet.png src/main/resources/pack/objets 32 filet_vide filet_plein
  *   java outils/PrepIcones.java maquettes/higgsfield/bestiaire-icones.png src/main/resources/pack/objets 32 inconnu bestiaire medaille
+ *   java outils/PrepIcones.java --contour maquettes/higgsfield/pioche-a.png src/main/resources/pack/objets 32 pioche_pierre pioche_fer pioche_diamant pioche_netherite pioche_maitre
+ * --contour : n'efface que le fond relie au bord de l'image (sinon le cristal violet de la pioche, proche du
+ * magenta, disparait) ; sans --contour, tout le magenta est efface (les trous des mailles du filet).
  */
 public class PrepIcones {
 
     public static void main(String[] a) throws Exception {
+        boolean contour = a.length > 0 && a[0].equals("--contour");
+        if (contour) a = java.util.Arrays.copyOfRange(a, 1, a.length);
         BufferedImage src = ImageIO.read(new File(a[0]));
         File dst = new File(a[1]);
         int taille = Integer.parseInt(a[2]);
@@ -25,7 +30,7 @@ public class PrepIcones {
         int[][] cadres = new int[n][];
         int cote = 0;
         for (int i = 0; i < n; i++) {
-            icones[i] = detourer(src.getSubimage(i * part, 0, part, src.getHeight()));
+            icones[i] = detourer(src.getSubimage(i * part, 0, part, src.getHeight()), contour);
             cadres[i] = cadre(icones[i]);
             cote = Math.max(cote, Math.max(cadres[i][2] - cadres[i][0], cadres[i][3] - cadres[i][1]) + 1);
         }
@@ -44,13 +49,29 @@ public class PrepIcones {
         return Math.min(r, b) - g > 60 && Math.abs(r - b) < 90;
     }
 
-    static BufferedImage detourer(BufferedImage img) {
-        BufferedImage out = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        for (int y = 0; y < img.getHeight(); y++)
-            for (int x = 0; x < img.getWidth(); x++) {
-                int rgb = img.getRGB(x, y);
-                out.setRGB(x, y, fond(rgb) ? 0 : (0xFF000000 | rgb));
+    static BufferedImage detourer(BufferedImage img, boolean contour) {
+        int w = img.getWidth(), h = img.getHeight();
+        boolean[] efface = new boolean[w * h];
+        if (contour) {
+            // Remplissage depuis les bords : seul le fond qui touche le bord est efface
+            java.util.ArrayDeque<Integer> pile = new java.util.ArrayDeque<>();
+            for (int x = 0; x < w; x++) { pile.push(x); pile.push((h - 1) * w + x); }
+            for (int y = 0; y < h; y++) { pile.push(y * w); pile.push(y * w + w - 1); }
+            while (!pile.isEmpty()) {
+                int i = pile.pop(), x = i % w, y = i / w;
+                if (efface[i] || !fond(img.getRGB(x, y))) continue;
+                efface[i] = true;
+                if (x > 0) pile.push(i - 1);
+                if (x < w - 1) pile.push(i + 1);
+                if (y > 0) pile.push(i - w);
+                if (y < h - 1) pile.push(i + w);
             }
+        } else {
+            for (int i = 0; i < w * h; i++) efface[i] = fond(img.getRGB(i % w, i / w));
+        }
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        for (int i = 0; i < w * h; i++)
+            out.setRGB(i % w, i / w, efface[i] ? 0 : (0xFF000000 | img.getRGB(i % w, i / w)));
         return out;
     }
 

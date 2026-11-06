@@ -64,7 +64,8 @@ final class Mineur implements Listener {
         if (!estOutil(outil) || !depart.isPreferredTool(outil)) return;
 
         Predicate<Material> memeFamille = m -> Objects.equals(famille, famille(m, supplementaires));
-        List<Block> filon = Blocs.connectes(depart, memeFamille, Math.max(1, cfg.getInt("mineur.max-blocs", 64)));
+        int max = plugin.pioche().maxFilon(p, outil, Math.max(1, cfg.getInt("mineur.max-blocs", 64)));
+        List<Block> filon = Blocs.connectes(depart, memeFamille, max);
         if (filon.size() < 2) return;
 
         Material typeOutil = outil.getType();

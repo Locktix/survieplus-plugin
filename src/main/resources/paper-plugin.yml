@@ -1,5 +1,5 @@
 name: SurviePlus
-version: '1.3.0'
+version: '1.4.0'
 main: fr.survieplus.SurviePlus
 api-version: '26.3'
 description: Ameliorations de la survie (abattage d'arbre, minage de filon...)
@@ -25,6 +25,9 @@ permissions:
     default: true
   survieplus.capture:
     description: Fabriquer et utiliser le filet de capture
+    default: true
+  survieplus.pioche:
+    description: Fabriquer et utiliser la pioche du mineur (/pioche)
     default: true
   survieplus.admin:
     description: /survieplus reload, reglage du sommeil, ouvrir les tombes des autres

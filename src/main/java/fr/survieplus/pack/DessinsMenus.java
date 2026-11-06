@@ -139,6 +139,19 @@ public final class DessinsMenus {
                 PackMenus.FILET_PLEIN, "survieplus:item/filet_plein"));
         pack.variantes(PackMenus.MODELE_MEDAILLE, "minecraft:item/gold_nugget", java.util.Map.of(
                 PackMenus.MEDAILLE, "survieplus:item/medaille"));
+        // Pioche du mineur (planche Higgsfield, outils/PrepIcones.java --contour) : tenue en main comme un outil
+        // Trie : l'ordre de Map.of change a chaque lancement de Java, et le pack doit etre identique partout
+        for (var e : new java.util.TreeMap<>(PackMenus.PIOCHES).entrySet()) {
+            String nom = e.getKey().substring("survieplus:".length());
+            pack.objet(nom, objet(nom), "minecraft:item/handheld");
+        }
+        for (String mat : List.of("stone", "iron", "diamond", "netherite")) {
+            java.util.Map<String, String> cas = new java.util.HashMap<>();
+            PackMenus.PIOCHES.forEach((texte, objet) -> {
+                if (objet.equals(mat + "_pickaxe")) cas.put(texte, "survieplus:item/" + texte.substring("survieplus:".length()));
+            });
+            pack.variantes(net.kyori.adventure.key.Key.key("minecraft", mat + "_pickaxe"), "minecraft:item/" + mat + "_pickaxe", cas);
+        }
         d.fondBestiaire = pack.mosaique("fond_bestiaire", d.fondBestiaire(), -4, HD);
         pack.texte(PackMenus.TITRE_Y);
         pack.texte(caseY(0) + 4);  // "Options :" de /sp

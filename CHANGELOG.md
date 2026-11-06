@@ -3,6 +3,33 @@
 Toutes les versions de SurviePlus. Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 numéros de version : [SemVer](https://semver.org/lang/fr/) (nouvelle fonction = 1.x.0, correctif = 1.x.y).
 
+## [1.4.0] — 2026-11-06
+
+### Ajouté
+- **Pioche du mineur** : une pioche en pierre entourée de 4 éclats d'améthyste et de 4 lingots de cuivre.
+  - Liée à celui qui la fabrique : une seule par joueur, personne d'autre ne mine avec ni ne la ramasse.
+  - Incassable, gardée à la mort (ni tombe ni sol), indestructible par terre (lave, feu, explosions)
+    et sans disparition ; ni enclume, ni meule, ni table de forge, ni table d'enchantement.
+  - **Son niveau est le niveau de Mineur** : un peu plus rapide à chaque niveau (jusqu'à l'équivalent
+    d'Efficacité V), et un gain tous les 5 niveaux : Fortune I (5), fer (10), aimant (15), Fortune II (20),
+    diamant (25), vision nocturne sous terre (30), netherite + Fortune III (40), filons de 128 blocs (45),
+    minage 3×3 et apparence Grand maître (50).
+  - **+15 % d'XP de Mineur** en minant avec elle.
+  - `/pioche` : en refait une si elle est perdue ; l'ancienne s'effrite si elle réapparaît.
+  - Option **Minage 3×3** dans `/sp` (débloquée au niveau 50 de Mineur ; accroupi = un seul bloc).
+  - Page « La pioche » et « Ses gains » dans le livre guide. Réglages dans `pioche:`.
+- Images Higgsfield des 5 apparences (pierre, fer, diamant, netherite, Grand maître), tenues en main comme
+  un outil. `outils/PrepIcones.java --contour` n'efface que le fond relié au bord (le cristal violet restait
+  pris pour du magenta).
+
+### Modifié
+- **XP des minerais relevée d'environ 40 %** (charbon 4, cuivre 3, fer 7, or 10, lapis 8, diamant 20,
+  émeraude 25, débris antiques 35...) : le niveau 50 de Mineur demande environ 24 h de minage au lieu de 33.
+- Récompenses du Mineur : 16 lingots de fer + 64 torches au niveau 10, 5 diamants + 32 rails au niveau 25
+  (au lieu des pioches en fer et en diamant).
+- Ces nouvelles valeurs remplacent les anciennes dans le `config.yml` du serveur au démarrage, sauf si
+  l'admin les avait modifiées.
+
 ## [1.3.0] — 2026-11-05
 
 ### Ajouté

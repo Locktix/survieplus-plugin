@@ -71,10 +71,35 @@ class ConfigTest {
             assertTrue(c.contains(xp), xp);
         }
         // Les valeurs importantes pour la progression
-        assertEquals(15, c.getLong("metiers.xp.mineur.DIAMOND_ORE"));
+        assertEquals(20, c.getLong("metiers.xp.mineur.DIAMOND_ORE"));
         assertEquals(5, c.getLong("metiers.xp.chasseur.defaut"));
         assertEquals(8, c.getLong("metiers.xp.pecheur.poisson"));
         // Le guide n'a que ses propres reglages
         assertEquals(java.util.Set.of("premiere-connexion"), c.getConfigurationSection("guide").getKeys(false));
+    }
+
+    @Test
+    void anciensDefautsPassentAuNouveauBaremeSaufSiModifies() throws IOException {
+        YamlConfiguration defauts = config();
+        // Chaque ancien defaut correspond bien a un reglage du config.yml, dont la valeur a change
+        for (var e : MajConfig.ANCIENS_DEFAUTS.entrySet()) {
+            assertTrue(defauts.contains(e.getKey()), e.getKey());
+            assertNotEquals(e.getValue() instanceof java.util.List<?> ? e.getValue() : String.valueOf(e.getValue()),
+                    e.getValue() instanceof java.util.List<?> ? defauts.getStringList(e.getKey()) : defauts.getString(e.getKey()), e.getKey());
+        }
+
+        YamlConfiguration prod = new YamlConfiguration();
+        prod.set("metiers.xp.mineur.COAL_ORE", 3);     // ancien defaut -> mis a jour
+        prod.set("metiers.xp.mineur.DIAMOND_ORE", 50); // change par l'admin -> garde
+        prod.set("metiers.recompenses.mineur.10", java.util.List.of("IRON_PICKAXE efficiency:2 unbreaking:1"));
+        prod.set("metiers.recompenses.mineur.25", java.util.List.of("DIAMOND 64")); // change -> garde
+        prod.setDefaults(defauts);
+        assertEquals(2, MajConfig.appliquer(prod));
+        assertEquals(4, prod.getLong("metiers.xp.mineur.COAL_ORE"));
+        assertEquals(50, prod.getLong("metiers.xp.mineur.DIAMOND_ORE"));
+        assertEquals(java.util.List.of("IRON_INGOT 16", "TORCH 64"), prod.getStringList("metiers.recompenses.mineur.10"));
+        assertEquals(java.util.List.of("DIAMOND 64"), prod.getStringList("metiers.recompenses.mineur.25"));
+        assertFalse(prod.isSet("metiers.xp.mineur.IRON_ORE"), "une cle absente n'est pas ecrite");
+        assertEquals(0, MajConfig.appliquer(prod), "deuxieme passage : rien a faire");
     }
 }

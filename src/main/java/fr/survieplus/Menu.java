@@ -36,14 +36,15 @@ final class Menu implements InventoryHolder {
             13, Module.MINEUR,
             14, Module.RECOLTE,
             15, Module.TOMBE,
-            16, Module.TRI);
+            16, Module.TRI,
+            17, Module.MINAGE_3X3);
 
     private static final int SLOT_SOMMEIL = 26;
     private static final int SLOT_METIERS = 4;
     private static final int SLOT_GUIDE = 8;
     private static final int SLOT_BESTIAIRE = 18;
     /** Cases occupees (encadrees dans le fond du menu dessine). */
-    static final int[] CASES = {SLOT_METIERS, SLOT_GUIDE, 10, 11, 12, 13, 14, 15, 16, SLOT_BESTIAIRE, SLOT_SOMMEIL};
+    static final int[] CASES = {SLOT_METIERS, SLOT_GUIDE, 10, 11, 12, 13, 14, 15, 16, 17, SLOT_BESTIAIRE, SLOT_SOMMEIL};
 
     private final SurviePlus plugin;
     private final Player joueur;
